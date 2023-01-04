@@ -1,0 +1,60 @@
+{
+  "root": true,
+  "extends": [
+    "prettier"
+  ],
+  "plugins": ["react", "jest", "prettier"],
+  "env": {
+    "node": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "dist-*"
+  ],
+  "rules": {
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "jsx": "never",
+        "ts": "never",
+        "tsx": "never"
+      }
+    ],
+    "import/no-unresolved": [2, { "ignore": ["Types"] }],
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        "ignorePropertyModificationsFor": ["event"]
+      }
+    ],
+    "import/no-extraneous-dependencies": ["off", { "devDependencies": ["packages/**/test/*.ts"] }],
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "no-underscore-dangle": 0,
+    "@typescript-eslint/interface-name-prefix": 0,
+    "@typescript-eslint/no-unused-vars": 0,
+    "@typescript-eslint/ban-ts-comment": ["error", { "ts-ignore": "allow-with-description" }],
+    "react/jsx-uses-react": "error",
+    "react/jsx-uses-vars": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.jest.ts", "jest.setup.js"],
+      "env": {
+        "jest": true
+      },
+      "rules": {
+        "@typescript-eslint/explicit-function-return-type": 0,
+        "@typescript-eslint/no-non-null-assertion": 0
+      }
+    }
+  ],
+  "globals": {
+    "__DEV__": false
+  }
+}

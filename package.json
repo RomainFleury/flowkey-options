@@ -1,0 +1,17 @@
+{
+  "name": "@romain-fleury/",
+  "version": "1.5.0",
+  "description": "Flowkey options chrome extension",
+  "repository": "https://github.com/RomainFleury/flowkey-options",
+  "license": "ISC",
+  "author": "Romain Fleury",
+  "main": "src/index.ts",
+  "typings": "dist-ts/index.d.ts",
+  "scripts": {
+    "lint": "eslint . --ext .js,.tsx,.ts",
+    "prepublish": "zip build/flowkey-player-options"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.5"
+  }
+}

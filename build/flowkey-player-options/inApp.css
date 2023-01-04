@@ -1,0 +1,28 @@
+:root {
+  --orange: rgba(235, 127, 0, 1);
+  --grey: #676d73;
+}
+
+#flowkey-extension {
+  margin: 1em;
+  height: 60px;
+}
+
+#flowkey-extension .flowkey-extension-button {
+  border: 1px solid var(--grey);
+  margin-right: 1em;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  transition: all 0.5s ease-out;
+  background-color: transparent;
+}
+
+.flowkey-extension-always-visible {
+  opacity: 1 !important;
+}
+
+.flowkey-extension-always-visible #flowkey-extension-button-always-visible {
+  background-color: var(--orange);
+  border: var(--orange);
+}

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Flowkey Unofficial Player Options",
+  "description": "A non official extension designed to add features to the awesome piano learning app Flowkey",
+  "version": "0.0.1",
+  "author": "chrome-extensions@romain.in",
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png",
+      "600": "icon600.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.flowkey.com/*"],
+      "js": ["addButtons.js"],
+      "css": ["inApp.css"]
+    }
+  ],
+  "permissions": ["activeTab"]
+}
