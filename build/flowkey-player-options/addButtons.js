@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 const pathNameConstraint = /^\/player\/.*/;
 
 const extensionButtonsContainerId = 'flowkey-extension';
@@ -53,13 +51,12 @@ function getMainControlsContainer() {
 }
 
 function resetPlacement() {
-  console.log('RESET');
   // we use the app management of window resize to reset the values
   const targetWidth = window.outerWidth;
   const targetHeight = window.outerHeight;
   window.resizeTo(
-    targetWidth + 1,
-    targetHeight + 1,
+    targetWidth - 1,
+    targetHeight - 1,
     );
   setTimeout(() => {
     window.resizeTo(
@@ -168,18 +165,7 @@ function addButtons() {
 
   // Does not work very well
   addButtonAlwaysVisible(buttonsContainer);
-
-  // Button to hide the keyboard or the highlights ?
 }
-
-// chrome.storage.local.set({ key: value }).then(() => {
-//   console.log("Value is set to " + value);
-// });
-
-// chrome.storage.local.get(["key"]).then((result) => {
-//   console.log("Value currently is " + result.key);
-// });
-
 
 ////////////////////////////////////////////////////////
 // Global init
