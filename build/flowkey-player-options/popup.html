@@ -6,37 +6,57 @@
   </head>
   <body>
     <h1>Flowkey Unofficial Player Options</h1>
+    <div
+     id="messages-container">
+      <p id="messages" class="fadeout"></p>
+    </div>
     <p>
-      Hi ! This extension has been created manually, and is not related to flowkey official app.
+      Hi! This extension has been created by an independant person, and is not related nor affiliated with flowkey official app.
       <br />
-      It has been created to work with the great web app flowkey that you can find here: <a href="https://app.flowkey.com/">https://app.flowkey.com/</a>.
+      You can find the flowkey web app here: <a href="https://app.flowkey.com/">https://app.flowkey.com/</a>.
       <br />
       <br />
-      It has been created to fill personnal needs and does not reflect the quality of the original app.
-      <br />
-      Please contact me if you have any issue.
+      If you have any issue, reload the flowkey page and do not use this extension.
     </p>
-    <hr />
-    <div id="current-song-container">
-      <h2>Current song</h2>
-      <button id="load-current-song-button">Find current song</button>
-      <p>
-        <input type="text" id="current-song-id" />
-        <br />
-        <input type="text" id="current-song-name" />
-        <br />
-        <input type="text" id="current-song-author" />
-      </p>
-      <div id="song-loader" style="display: none;">Loading...</div>
-      <hr />
-      <h2>Fetch current song</h2>
-      <button id="fetch-current-song-button">Fetch current song</button>
-      <hr />
-      <h2>Sync</h2>
-      <button id="sync-button">Sync</button>
-      <ul id="sync-list">
-        
-      </ul>
+    <div id="current-song-container" >
+      <div class="current-song-header title-and-button">
+        <h2>Current song</h2>
+        <button id="load-current-song-button">Reload</button>
+      </div>
+      <input type="text" id="current-song-id" class="hidden" />
+      <input type="text" id="current-song-name" class="songname" />
+      <input type="text" id="current-song-author" class="songauthor" />
+    </div>
+    <div id="hallucinate-container">
+      <div class="hallucinate-header title-and-button">
+        <h2>Song data</h2>
+        <button id="fetch-current-song-button">Hallucinate it</button>
+      </div>
+    </div>
+    <div id="song-loader" class="hidden">Hallucinating data...</div>
+    <div id="all-stored-songs">
+      <div class="stored-songs-header title-and-button">
+        <h2>Stored songs</h2>
+        <button id="sync-button">Reload</button>
+      </div>
+      <table id="sync-list-container">  
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sync-list">
+        </tbody>
+
+      </table>
+      <button id="download-all-songs-button">Download all songs (json)</button>
+
+      <div class="stored-songs-header title-and-button">
+        <h3 style="width: 150px">Upload saved songs</h3>
+        <input type="file" id="upload-all-songs-dropper" />
+      </div>
     </div>
     <script src="popup.js"></script>
   </body>

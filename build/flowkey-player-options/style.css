@@ -1,4 +1,100 @@
 body {
   padding: 2em;
   min-width: 250px;
+  font-family: sans-serif;
+}
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 1.5em;
+}
+
+#messages-container {
+  position: relative;
+}
+
+#messages {
+  position: absolute;
+  background-color: #eaefc8;
+  border-radius: 0.5em;
+  padding: 0.5em;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 1;
+}
+
+#messages.fadeout {
+  opacity: 0;
+  height: 0;
+}
+
+.title-and-button {
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid #084d27;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title-and-button h2,
+.title-and-button h3,
+.title-and-button h4 {
+  margin: 0;
+}
+
+#sync-list-container {
+  width: 100%;
+}
+
+table {
+  border-spacing: 0;
+}
+
+th {
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0;
+}
+
+tr {
+  border-radius: 0.5em;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.current-song {
+  background-color: #b8f865;
+}
+
+.load-button {
+  text-align: right;
+}
+
+.hidden {
+  display: none;
+}
+
+.songname,
+.songauthor {
+  border: 0;
+  padding: 0;
+  padding-top: 0.5em;
+}
+
+.songname {
+  width: 100%;
+}
+
+.songauthor {
+  font-weight: bolder;
+  width: 100%;
+}
+
+#download-all-songs-button {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  width: 100%;
 }

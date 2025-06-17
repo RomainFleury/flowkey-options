@@ -1,0 +1,152 @@
+{
+  "title": "The Entertainer",
+  "author": "Scott Joplin",
+  "id": "DFkqYnpTKW57mPhjc",
+  "key": "The Entertainer-Scott Joplin-DFkqYnpTKW57mPhjc",
+  "content": {
+    "title": "The Entertainer",
+    "composer": "Scott Joplin",
+    "year": 1902,
+    "musical_era": "Ragtime Era",
+    "genre": "Ragtime",
+    "historical_context": "Composed in 1902, 'The Entertainer' is one of the most iconic ragtime compositions and a defining work of the genre. Ragtime was a precursor to jazz and was characterized by its syncopated rhythms and steady left-hand accompaniment. Joplin, often referred to as the 'King of Ragtime,' sought to elevate ragtime to a serious art form.",
+    "historical_anecdote": "‘The Entertainer’ gained renewed popularity in the 1970s when it was used as the theme music for the film 'The Sting' (1973), which won the Academy Award for Best Picture.",
+    "historical_anecdote_source": "IMDb and various film music retrospectives",
+    "author_notes": "Joplin intended ragtime to be performed with precision and dignity, not rushed or overly embellished. His compositions often include performance notes urging performers to avoid playing too fast.",
+    "author_notes_source": "Preface to 'The Collected Works of Scott Joplin', edited by Vera Brodsky Lawrence",
+    "made_famous_by": "The film 'The Sting' (1973), arranged by Marvin Hamlisch",
+    "total_measures": 127,
+    "key_signature": "C major (modulates to F major in Trio)",
+    "time_signature": "2/4",
+    "movements_analysis_confidence": 100,
+    "movements": [
+      {
+        "movement": "Ragtime March",
+        "tempo": "Moderato",
+        "sections": [
+          {
+            "name": "Intro",
+            "measures": [1, 4],
+            "timing": "0:00–0:08",
+            "start_time_sec": 0,
+            "end_time_sec": 8,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "A short four-measure introduction that sets the rhythmic and harmonic tone of the piece.",
+            "interpretation": "Serves as a rhythmic and harmonic cue for the listener, establishing the syncopated character of the rag."
+          },
+          {
+            "name": "A Section",
+            "measures": [5, 20],
+            "timing": "0:08–0:38",
+            "start_time_sec": 8,
+            "end_time_sec": 38,
+            "dynamics": "mf",
+            "texture": "Homophonic with syncopated melody",
+            "description": "The main theme, characterized by a catchy, syncopated melody in the right hand over a steady left-hand accompaniment.",
+            "interpretation": "This section exemplifies the classic ragtime feel, with a playful and memorable melodic line."
+          },
+          {
+            "name": "A Section Repeat",
+            "measures": [5, 20],
+            "timing": "0:38–1:08",
+            "start_time_sec": 38,
+            "end_time_sec": 68,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "Repetition of the A section, reinforcing the main theme.",
+            "interpretation": "Repetition is typical in ragtime form, emphasizing the thematic material."
+          },
+          {
+            "name": "B Section",
+            "measures": [21, 36],
+            "timing": "1:08–1:38",
+            "start_time_sec": 68,
+            "end_time_sec": 98,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "A contrasting theme with a more lyrical and flowing character, still maintaining syncopation.",
+            "interpretation": "Provides contrast to the A section, showcasing Joplin’s melodic inventiveness."
+          },
+          {
+            "name": "B Section Repeat",
+            "measures": [21, 36],
+            "timing": "1:38–2:08",
+            "start_time_sec": 98,
+            "end_time_sec": 128,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "Repetition of the B section.",
+            "interpretation": "Reinforces the lyrical contrast before transitioning to the Trio."
+          },
+          {
+            "name": "Trio (C Section)",
+            "measures": [37, 52],
+            "timing": "2:08–2:38",
+            "start_time_sec": 128,
+            "end_time_sec": 158,
+            "dynamics": "mp",
+            "texture": "Homophonic",
+            "description": "Modulates to F major, introducing a new theme with a lighter, more graceful character.",
+            "interpretation": "The Trio provides tonal and thematic contrast, a common feature in ragtime form."
+          },
+          {
+            "name": "Trio Repeat",
+            "measures": [37, 52],
+            "timing": "2:38–3:08",
+            "start_time_sec": 158,
+            "end_time_sec": 188,
+            "dynamics": "mp",
+            "texture": "Homophonic",
+            "description": "Repetition of the Trio section.",
+            "interpretation": "Reinforces the new key and theme before returning to the final section."
+          },
+          {
+            "name": "D Section",
+            "measures": [53, 68],
+            "timing": "3:08–3:38",
+            "start_time_sec": 188,
+            "end_time_sec": 218,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "A new theme in F major, rhythmically active and harmonically rich.",
+            "interpretation": "Adds further variety and complexity to the piece, showcasing Joplin’s compositional skill."
+          },
+          {
+            "name": "D Section Repeat",
+            "measures": [53, 68],
+            "timing": "3:38–4:08",
+            "start_time_sec": 218,
+            "end_time_sec": 248,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "Repetition of the D section.",
+            "interpretation": "Solidifies the final thematic material before the return to the A section."
+          },
+          {
+            "name": "A Section Return",
+            "measures": [5, 20],
+            "timing": "4:08–4:38",
+            "start_time_sec": 248,
+            "end_time_sec": 278,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "Return to the original A theme to conclude the piece.",
+            "interpretation": "Provides structural closure and thematic unity, a hallmark of ragtime form."
+          },
+          {
+            "name": "Coda",
+            "measures": [121, 127],
+            "timing": "4:38–4:50",
+            "start_time_sec": 278,
+            "end_time_sec": 290,
+            "dynamics": "mf",
+            "texture": "Homophonic",
+            "description": "A brief closing section that wraps up the piece with a final cadence.",
+            "interpretation": "Serves as a formal conclusion, reinforcing the tonal center and rhythmic character."
+          }
+        ]
+      }
+    ]
+  }
+}
