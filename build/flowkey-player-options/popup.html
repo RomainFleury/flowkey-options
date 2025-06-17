@@ -16,5 +16,28 @@
       <br />
       Please contact me if you have any issue.
     </p>
+    <hr />
+    <div id="current-song-container">
+      <h2>Current song</h2>
+      <button id="load-current-song-button">Find current song</button>
+      <p>
+        <input type="text" id="current-song-id" />
+        <br />
+        <input type="text" id="current-song-name" />
+        <br />
+        <input type="text" id="current-song-author" />
+      </p>
+      <div id="song-loader" style="display: none;">Loading...</div>
+      <hr />
+      <h2>Fetch current song</h2>
+      <button id="fetch-current-song-button">Fetch current song</button>
+      <hr />
+      <h2>Sync</h2>
+      <button id="sync-button">Sync</button>
+      <ul id="sync-list">
+        
+      </ul>
+    </div>
+    <script src="popup.js"></script>
   </body>
 </html>

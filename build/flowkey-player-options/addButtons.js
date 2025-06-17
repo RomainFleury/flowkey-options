@@ -5,6 +5,84 @@ const buttonIdPrefix = 'flowkey-extension-button';
 const modifiedInfoClass = `${extensionButtonsContainerId}-modified`;
 const alwaysVisibleClass = `${extensionButtonsContainerId}-always-visible`;
 
+// THIS CODE IS IN THE WEBSITE
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleMessage(message, sender, sendResponse);
+  return true;
+});
+
+function handleMessage(message, sender, sendResponse) {
+  console.log("handleMessage", message, sender);
+  switch(message.type) {
+    case "contentSync":
+      contentSync(sendResponse);
+      break;
+    case "getSongInfo":
+      getSongInfoMessage(sendResponse);
+      break;
+    case "sendSong":
+      console.log("🚀 ~ receiveSong ~ message:", message);
+      receiveSong(message.song);
+      break;
+    default:
+      console.warn("Unknown message type", message.type);
+      break;
+  }
+}
+
+function getSongInfoMessage(sendResponse) {
+  const songInfo = getSongInfo();
+  sendResponse(songInfo);
+}
+
+function receiveSong(song) {
+  console.log("🚀 ~ receiveSong ~ song:", song);
+}
+
+
+function getSongInfo() { // : { title: string; author: string } | null 
+  const songInfoView = document.querySelector(".song-info-view");
+  if (!songInfoView) return null;
+
+  console.log("🚀 ~ getSongInfo ~ songInfoView:", songInfoView);
+  // const url = https://app.flowkey.com/player/DFkqYnpTKW57mPhjc
+  // const url = https://app.flowkey.com/player/[ID]
+
+  const author = songInfoView.querySelector("span")?.textContent || "";
+  const title = songInfoView.querySelector("h4")?.textContent || "";
+  const idFromUrl = window.location.href.split("/").pop();
+
+  console.log("[Flowkey Sync] Song info", { title, author, idFromUrl });
+  return { title, author, idFromUrl };
+}
+
+function getCurrentTime() {
+
+  // player-video-container > .player-video
+  const video = document.querySelector(".player-video"); //  as HTMLVideoElement
+  if (!video) {
+    console.warn("[Flowkey Sync] Video element not found");
+    return 0;
+  }
+  const currentTime = video.currentTime;
+  registerVideoTimeUpdate((time) => {
+    console.log("🚀 ~ getCurrentTime ~ time:", time);
+    currentTime = time;
+  });
+  return currentTime;
+}
+
+function registerVideoTimeUpdate(callback) {
+  const video = document.querySelector(".player-video"); //  as HTMLVideoElement
+  if (!video) {
+    console.warn("[Flowkey Sync] Video element not found");
+    return;
+  }
+  video.addEventListener("timeupdate", callback);
+  return () => video.removeEventListener("timeupdate", callback);
+}
+
 ////////////////////////////////////////////////////////
 // App tools and vars
 ////////////////////////////////////////////////////////
