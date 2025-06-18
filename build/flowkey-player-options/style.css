@@ -98,3 +98,19 @@ tr {
   margin-bottom: 0.5em;
   width: 100%;
 }
+
+#last-sheets {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+.sheet {
+  width: 50%;
+  height: 100px;
+}
+
+#measures-count-container {
+  display: flex;
+  flex-direction: row;
+}

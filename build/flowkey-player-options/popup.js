@@ -95,6 +95,8 @@ function currentSongFromForm() {
   const title = document.getElementById('current-song-name').value;
   const author = document.getElementById('current-song-author').value;
   const id = document.getElementById('current-song-id').value;
+  const measuresCount = document.getElementById('current-song-measures-count').value;
+  const lengthInSeconds = document.getElementById('current-song-length-in-seconds').value;
   if (!title || !author || !id) {
     return null;
   }
@@ -102,6 +104,8 @@ function currentSongFromForm() {
     title,
     author,
     id,
+    measuresCount,
+    lengthInSeconds,
   };
 }
 
@@ -145,6 +149,7 @@ async function fetchJsonAndSendToTab(songInfo) {
 }
 
 async function fetchCurrentSongNameAndAuthor() {
+  loading(true);
   logMessage('Fetching current song name and author');
   return new Promise((resolve) => {
     sendMessageToTab({ type: 'getSongInfo' }, (response) => {
@@ -152,13 +157,24 @@ async function fetchCurrentSongNameAndAuthor() {
       document.getElementById('current-song-name').value = response.title;
       document.getElementById('current-song-author').value = response.author;
       document.getElementById('current-song-id').value = response.idFromUrl;
+      document.getElementById('current-song-measures-count').value = response.measuresCount;
+      document.getElementById('current-song-length-in-seconds').value = response.lengthInSeconds;
+      document.getElementById('last-sheets').innerHTML = '';
+      response.lastSheets.reverse().forEach((sheetImageUrl) => {
+        const img = document.createElement('img');
+        img.src = sheetImageUrl;
+        img.classList.add('sheet');
+        document.getElementById('last-sheets').appendChild(img);
+      });
       document.getElementById('current-song-container').classList.remove('hidden');
+      highlightCurrentSong(response.idFromUrl);
+      loading(false);
       resolve(response);
     });
   });
 }
 
-async function fetchSyncData(title, author, id) {
+async function fetchSyncData(title, author, id, measuresCount, lengthInSeconds) {
   loading(true);
   logMessage(`Fetching sync data for: ${title} - ${author} - ${id}`);
   const cacheKey = getSongId(title, author, id);
@@ -170,8 +186,13 @@ async function fetchSyncData(title, author, id) {
   }
 
   const response = await fetch(
-    `${SYNC_SERVER_URL}?pieceTitle=${encodeURIComponent(title)}&composer=${encodeURIComponent(author)}`,
+    `${SYNC_SERVER_URL}?pieceTitle=${encodeURIComponent(title)}&composer=${encodeURIComponent(
+      author,
+    )}&measuresCount=${encodeURIComponent(measuresCount)}&lengthInSeconds=${encodeURIComponent(
+      lengthInSeconds,
+    )}&instrumentVariant=${encodeURIComponent('A piano solo by Flowkey')}`,
   );
+
   const RAW_JSON = await response.json();
   const formatted = formatSongData(cacheKey, RAW_JSON);
   saveToStorage(cacheKey, formatted);
@@ -182,13 +203,18 @@ async function fetchSyncData(title, author, id) {
 }
 
 function autoLoadCurrentSong() {
-  fetchCurrentSongNameAndAuthor();
+  fetchCurrentSongNameAndAuthor().then(() => {
+    syncAllSongs();
+  });
   syncAllSongs();
 }
 
 ////////////////////////////////////////////////////////
 // HTML HELPERS
 ////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////
+// SONGS LIST
 
 function createTableRow(song) {
   const row = document.createElement('tr');
@@ -209,6 +235,15 @@ function createTableRow(song) {
   });
   loadButton.appendChild(button);
   row.appendChild(loadButton);
+  const downloadButtonCell = document.createElement('td');
+  downloadButtonCell.classList.add('download-button');
+  const downloadButton = document.createElement('button');
+  downloadButton.textContent = 'Download';
+  downloadButton.addEventListener('click', (e) => {
+    downloadSong(song);
+  });
+  downloadButtonCell.appendChild(downloadButton);
+  row.appendChild(downloadButtonCell);
   return row;
 }
 
@@ -227,19 +262,31 @@ function downloadAllSongs() {
   logMessage('Songs downloaded');
 }
 
-function highlightCurrentSong() {
+function downloadSong(song) {
+  const json = JSON.stringify(song, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = `${song.title} - ${song.author} - ${song.id}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  logMessage('Song downloaded');
+}
+
+function highlightCurrentSong(id) {
   document.querySelectorAll(`.current-song`).forEach((row) => {
     row.classList.remove('current-song');
   });
   const currentSong = currentSongFromForm();
-  if (!currentSong) {
+  if (!currentSong && !id) {
     return;
   }
-  const row = document.querySelector(`tr[data-id="${currentSong.id}"]`);
-  if (row) {
-    row.classList.add('current-song');
-  }
+  const row = document.querySelector(`tr[data-id="${id || currentSong.id}"]`);
+  row?.classList.add('current-song');
 }
+////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////
 // BUTTON MAPPING
@@ -258,8 +305,15 @@ function mapButtons() {
       return;
     }
 
-    await fetchSyncData(currentSong.title, currentSong.author, currentSong.id);
+    await fetchSyncData(
+      currentSong.title,
+      currentSong.author,
+      currentSong.id,
+      currentSong.measuresCount,
+      currentSong.lengthInSeconds,
+    );
     syncAllSongs();
+    highlightCurrentSong(currentSong.id);
   });
 
   document.getElementById('sync-button').addEventListener('click', () => {

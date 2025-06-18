@@ -5,6 +5,12 @@ const buttonIdPrefix = 'flowkey-extension-button';
 const modifiedInfoClass = `${extensionButtonsContainerId}-modified`;
 const alwaysVisibleClass = `${extensionButtonsContainerId}-always-visible`;
 
+const playHintsContainerId = 'play-hints-container';
+const songInfoContainerId = 'song-info-container';
+const toggleSongInfoButtonId = 'toggle-song';
+const togglePlayingHintsButtonId = 'toggle-play-hints';
+const songButtonsContainerId = 'song-buttons-container';
+
 let currentSong = null;
 let currentAction = null;
 
@@ -81,20 +87,97 @@ function getCurrentTime() {
   return currentTime;
 }
 
-function registerVideoTimeUpdate(callback) {
+function registerVideoTimeUpdate() {
   const video = document.querySelector('.player-video'); //  as HTMLVideoElement
   if (!video) {
     log('[Flowkey Sync] Video element not found');
     return;
   }
-  video.addEventListener('timeupdate', callback);
-  return () => video.removeEventListener('timeupdate', callback);
+  video.addEventListener('timeupdate', updatePlayHint);
+  return () => video.removeEventListener('timeupdate', updatePlayHint);
+}
+
+// function registerVideoTimeUpdate() {
+//   const video = document.querySelector('.player-video');
+//   if (!video) {
+//     log('Video element not found');
+//     return;
+//   }
+//   video.addEventListener('timeupdate', );
+// }
+
+function updatePlayHint(event) {
+  try {
+    console.log('updatePlayHint');
+    const playHintsContainer = getPlayingHintsContainer();
+    log(`updatePlayHint ~ event: ${event}`);
+    const video = document.querySelector('.player-video');
+    if (!video) {
+      log('Video element not found');
+      return;
+    }
+    const currentTime = video.currentTime;
+    log(`updatePlayHint ~ currentTime: ${currentTime}`);
+    const section = getPlayingHintsSection(currentTime);
+    if (section && playHintsContainer) {
+      playHintsContainer.innerHTML = `Current time: ${currentTime}
+${formatSection(section)}`;
+    }
+  } catch (error) {
+    log(`updatePlayHint ~ error: ${error}`);
+  }
+}
+
+function getPlayingHintsSection(currentTime) {
+  if (!currentSong) {
+    return undefined;
+  }
+  // "movements": [
+  //     {
+  //       "movement": "Single Movement Ballad",
+  //       "tempo": "Slow (♩ = ~63 BPM)",
+  //       "sections": [
+  //         {
+  //           "name": "Intro",
+  //           "measures": [1, 4],
+  //           "timing": "0:00–0:15",
+  //           "start_time_sec": 0,
+  //           "end_time_sec": 15,
+  //           "dynamics": "mp",
+  //           "texture": "Homophonic",
+  //           "description": "A solo piano introduces the harmonic progression that underpins the entire song.",
+  //           "interpretation": "Establishes the intimate and reflective mood of the piece.",
+  //           "lyrics": null
+  //         },
+  //         {
+  if (currentSong.content.movements.length === 0) {
+    return undefined;
+  }
+  const currentTimeInSeconds = Math.floor(currentTime);
+  log(`Current time: ${currentTime} (${currentTimeInSeconds})`);
+  // if we don't find in first movement, we look in the next one
+
+  const currentSection = currentSong.content.movements.reduce((foundSection, movement) => {
+    return (
+      foundSection ||
+      movement.sections.find((section) => {
+        return currentTimeInSeconds >= section.start_time_sec && currentTimeInSeconds <= section.end_time_sec;
+      })
+    );
+  }, undefined);
+  log(`getPlayingHintsSection ~ section: ${JSON.stringify(currentSection, null, 2)}`);
+  if (!currentSection) {
+    return undefined;
+  }
+
+  return currentSection;
 }
 
 ////////////////////////////////////////////////////////
 // App tools and values
 ////////////////////////////////////////////////////////
 
+const flowkeyPlayerClass = 'flowkey-player';
 const playerVideoContainerClass = 'player-video-container';
 const sheetContainerClass = 'sheet-container';
 const tabletControlsClass = 'tablet-controls';
@@ -103,6 +186,8 @@ const playedCorrectlyFeedbackClass = 'played-correctly-feedback';
 const notesNamesClass = 'note-names-container';
 const mainControlsClass = 'main-controls';
 const songViewInfoContainerClass = 'song-info-view';
+const playButtonClass = 'play-button';
+const playerVideoClass = 'player-video';
 
 function getFirstElementByClassName(className) {
   const potentialElements = document.getElementsByClassName(className);
@@ -110,8 +195,16 @@ function getFirstElementByClassName(className) {
   return potentialElement || false;
 }
 
+function getFlowkeyPlayerContainer() {
+  return getFirstElementByClassName(flowkeyPlayerClass);
+}
+
 function getPlayerVideoContainer() {
   return getFirstElementByClassName(playerVideoContainerClass);
+}
+
+function getPlayerVideo() {
+  return getFirstElementByClassName(playerVideoClass);
 }
 
 function getSongViewInfoContainer() {
@@ -173,18 +266,6 @@ function anyHaveBeenModified(elements) {
 ////////////////////////////////////////////////////////
 // Standard html tools
 ////////////////////////////////////////////////////////
-function addButton(container, name, label, title, onclick) {
-  const button = document.createElement('button');
-  button.setAttribute('name', name);
-  button.setAttribute('title', title);
-  button.classList.add(`${buttonIdPrefix}`);
-  button.setAttribute('id', `${buttonIdPrefix}-${name}`);
-  button.innerHTML = label;
-  button.addEventListener('click', () => {
-    onclick();
-  });
-  container.insertAdjacentElement('beforeend', button);
-}
 
 // IT ONLY WORKS IF THE EXTENSION IS OPEN, SO ITS SHIT.
 // function askForSong() {
@@ -196,7 +277,6 @@ function addButton(container, name, label, title, onclick) {
 ////////////////////////////////////////////////////////
 
 function getSongInfo() {
-  // : { title: string; author: string } | null
   const songInfoView = document.querySelector('.song-info-view');
   if (!songInfoView) return null;
 
@@ -204,17 +284,43 @@ function getSongInfo() {
   const title = songInfoView.querySelector('h4')?.textContent || '';
   const idFromUrl = window.location.href.split('/').pop();
 
-  log('[Flowkey Sync] Song info', { title, author, idFromUrl });
-  return { title, author, idFromUrl };
+  const measuresCount = 0;
+  log(`Duration: ${document.querySelector('.player-video')?.duration}`);
+  const lengthInSeconds = document.querySelector('.player-video')?.duration || 0;
+  const sheetContainer = getFirstElementByClassName('sheet-container');
+  const lastTwoSheets = Array.from(sheetContainer.querySelectorAll('.sheet-image')).reverse().slice(0, 2);
+  const lastSheets = lastTwoSheets.map((sheetElement) => {
+    return sheetElement.style.backgroundImage.split('url(')[1].split(')')[0].replaceAll(/\"/g, '').trim();
+  });
+
+  log(`lastTwoSheets: ${JSON.stringify(lastSheets, null, 2)}`);
+  log('[Flowkey Sync] Song info', {
+    title,
+    author,
+    idFromUrl,
+    measuresCount,
+    lengthInSeconds,
+    lastSheets,
+  });
+  return { title, author, idFromUrl, measuresCount, lengthInSeconds, lastSheets };
 }
 
 ////////////////////////////////////////////////////////
 // OTHER HTML TOOLS
 ////////////////////////////////////////////////////////
 
+function getSongInfoContainer() {
+  return document.getElementById(songInfoContainerId);
+}
+
 function createSongInfoContainer() {
+  const existingSongInfoContainer = getSongInfoContainer();
+  if (existingSongInfoContainer) {
+    existingSongInfoContainer.remove();
+  }
+
   const songInfo = document.createElement('div');
-  songInfo.setAttribute('id', 'song-info-container');
+  songInfo.setAttribute('id', songInfoContainerId);
   songInfo.style.position = 'absolute';
   songInfo.style.zIndex = '1';
   songInfo.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
@@ -239,57 +345,120 @@ function createSongInfoContainer() {
   return songInfo;
 }
 
+function getSongButtonsContainer() {
+  return document.getElementById(songButtonsContainerId);
+}
+
 function createSongButtonsContainer() {
+  const existingSongButtonsContainer = getSongButtonsContainer();
+  if (existingSongButtonsContainer) {
+    existingSongButtonsContainer.remove();
+  }
   const songButtonsContainer = document.createElement('div');
-  songButtonsContainer.setAttribute('id', 'song-buttons-container');
+  songButtonsContainer.setAttribute('id', songButtonsContainerId);
   songButtonsContainer.style.display = 'flex';
   songButtonsContainer.style.flexDirection = 'row';
   songButtonsContainer.style.gap = '1rem';
   songButtonsContainer.style.top = '96px';
   songButtonsContainer.style.right = '0';
   songButtonsContainer.style.zIndex = '1';
-  songButtonsContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
-  songButtonsContainer.style.borderRadius = '1rem';
+  songButtonsContainer.style.alignItems = 'center';
   return songButtonsContainer;
 }
 
-function getSongInfoContainer() {
-  return document.getElementById('song-info-container');
+const buttonActiveStyles = {
+  backgroundColor: 'var(--main-color)',
+  color: 'white',
+};
+
+const buttonInactiveStyles = {
+  backgroundColor: 'rgba(255, 255, 255, 1)',
+  color: 'var(--main-color)',
+};
+
+const songButtonsStyles = {
+  ...buttonInactiveStyles,
+  borderRadius: '1rem',
+  border: '1px solid var(--main-color)',
+  height: '32px',
+  width: '32px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+};
+
+function getPlayingHintsContainer() {
+  return document.getElementById(playHintsContainerId);
+}
+
+function createPlayingHintsContainer() {
+  const existingPlayHintsContainer = getPlayingHintsContainer();
+  if (existingPlayHintsContainer) {
+    existingPlayHintsContainer.remove();
+  }
+  const playHintsContainer = document.createElement('div');
+  playHintsContainer.setAttribute('id', playHintsContainerId);
+  playHintsContainer.style.position = 'absolute';
+  playHintsContainer.style.zIndex = '1';
+  playHintsContainer.style.opacity = '0';
+  playHintsContainer.style.transition = 'opacity 0.3s ease-in-out';
+  playHintsContainer.style.top = '100px';
+  playHintsContainer.innerHTML = '';
+  return playHintsContainer;
 }
 
 function toggleSongInfo() {
   const songInfoContainer = getSongInfoContainer();
-  const toggleSongButton = document.getElementById('toggle-song');
+  const toggleSongButton = document.getElementById(toggleSongInfoButtonId);
   log(`toggleSongInfo`);
   if (songInfoContainer.style.opacity === '0') {
     log('SHOW');
-    toggleSongButton.innerHTML = '🧯 Hide infos';
+    Object.assign(toggleSongButton.style, buttonActiveStyles);
     songInfoContainer.style.opacity = '1';
   } else {
     log('HIDE');
-    toggleSongButton.innerHTML = '🔥 Show infos';
+    Object.assign(toggleSongButton.style, buttonInactiveStyles);
     songInfoContainer.style.opacity = '0';
   }
 }
 
+function togglePlayingHints() {
+  const playHintsContainer = getPlayingHintsContainer();
+  const togglePlayingHintsButton = document.getElementById(togglePlayingHintsButtonId);
+  log(`togglePlayingHints`);
+  if (playHintsContainer.style.opacity === '0') {
+    log('SHOW');
+    Object.assign(togglePlayingHintsButton.style, buttonActiveStyles);
+    playHintsContainer.style.opacity = '1';
+  } else {
+    log('HIDE');
+    Object.assign(togglePlayingHintsButton.style, buttonInactiveStyles);
+    playHintsContainer.style.opacity = '0';
+  }
+}
+
 function injectSongContainer() {
-  const mainContainer = document.querySelector('.flowkey-player');
+  const mainContainer = getFlowkeyPlayerContainer();
   if (!mainContainer) {
     return;
   }
   if (!currentSong) {
-    if (document.querySelector('#song-info-container')) {
-      document.querySelector('#song-info-container').remove();
-    }
     return;
   }
+
+  // clean up existing song info container
+
   const songInfoContainer = createSongInfoContainer();
   mainContainer.appendChild(songInfoContainer);
 
-  // Buttons to hide and show song info
+  const playHintsContainer = createPlayingHintsContainer();
+  mainContainer.appendChild(playHintsContainer);
+
+  // Buttons to hide and show song info and play hints
   const songButtonsContainer = createSongButtonsContainer();
-  const buttonToggleSong = createButtonToggleSong();
+  const buttonToggleSong = createButtonToggleSongInfo();
+  const buttonTogglePlayingHints = createButtonTogglePlayingHints();
   songButtonsContainer.appendChild(buttonToggleSong);
+  songButtonsContainer.appendChild(buttonTogglePlayingHints);
 
   const songViewInfoContainer = getSongViewInfoContainer();
   songViewInfoContainer.parentElement.insertBefore(songButtonsContainer, songViewInfoContainer);
@@ -302,23 +471,56 @@ function injectCurrentSong() {
     return;
   }
   songInfoContainer.innerHTML = `
-    <p><b><u>Author Notes</u></b>: ${currentSong.content.author_notes} <i>(${currentSong.content.author_notes_source})</i></p>
-    <p><b><u>Context</u></b>: ${currentSong.content.historical_context}</p>
-    <p><b><u>Historical Anecdote</u></b>: ${currentSong.content.historical_anecdote} <i>(${currentSong.content.historical_anecdote_source})</i></p>
+    <p><span style="font-weight: bold; text-decoration: underline">Author Notes</span>: ${currentSong.content.author_notes} <span style="font-style: italic">(${currentSong.content.author_notes_source})</span></p>
+    <p><span style="font-weight: bold; text-decoration: underline">Context</span>: ${currentSong.content.historical_context}</p>
+    <p><span style="font-weight: bold; text-decoration: underline">Historical Anecdote</span>: ${currentSong.content.historical_anecdote} <span style="font-style: italic">(${currentSong.content.historical_anecdote_source})</span></p>
   `;
 }
 
-function createButtonToggleSong() {
+function createButtonToggleSongInfo() {
   const button = document.createElement('button');
-  button.setAttribute('id', 'toggle-song');
-  button.innerHTML = '🔥 Show infos';
+  button.setAttribute('id', toggleSongInfoButtonId);
+  button.innerHTML = '&#8505;';
   button.addEventListener('click', toggleSongInfo);
+  Object.assign(button.style, songButtonsStyles);
   return button;
+}
+
+function createButtonTogglePlayingHints() {
+  const button = document.createElement('button');
+  button.setAttribute('id', togglePlayingHintsButtonId);
+  button.innerHTML = '👯';
+  button.addEventListener('click', togglePlayingHints);
+  Object.assign(button.style, songButtonsStyles);
+  return button;
+}
+
+function formatSection(section) {
+  return `
+    <h3>${section.name} (${section.timing})</h3>
+    <p>Dynamics: ${section.dynamics}</p>
+    <p>Texture: ${section.texture}</p>
+    <p>Description: ${section.description}</p>
+    <p>Interpretation: ${section.interpretation}</p>
+    ${section.lyrics ? `<p>Lyrics: ${section.lyrics}…</p>` : ''}
+  `;
 }
 
 ////////////////////////////////////////////////////////
 // Buttons setup in the standard buttons bar
 ////////////////////////////////////////////////////////
+function addButton(container, name, label, title, onclick) {
+  const button = document.createElement('button');
+  button.setAttribute('name', name);
+  button.setAttribute('title', title);
+  button.classList.add(`${buttonIdPrefix}`);
+  button.setAttribute('id', `${buttonIdPrefix}-${name}`);
+  button.innerHTML = label;
+  button.addEventListener('click', () => {
+    onclick();
+  });
+  container.insertAdjacentElement('beforeend', button);
+}
 
 function addButtonReverse(container) {
   addButton(container, 'reverse', '&#8593; &#8595;', 'Invert sheet and piano', () => {
@@ -412,6 +614,7 @@ function init() {
   }
   setTimeout(() => {
     addButtons();
+    registerVideoTimeUpdate();
     // askForSong(); // only works if the extension is open, so its shit.
   }, 1000);
 }
@@ -426,13 +629,13 @@ function doWhenReady(callback) {
       log('🚀 ~ doWhenReady ~ canplay');
       return;
     }
-    if (!document.querySelector('.play-button')) {
+    if (!getPlayerVideo()) {
       log('🚀 ~ doWhenReady ~ play-button not found');
       return;
     }
-    if (document.querySelector('.player-video-container')) {
+    if (getPlayerVideoContainer()) {
       log('🚀 ~ doWhenReady ~ player-video-container found');
-      const video = document.querySelector('.player-video-container > .player-video');
+      const video = getPlayerVideo();
       if (video) {
         currentAction = 'canplay';
         log('🚀 ~ doWhenReady ~ player-video-container video itself found');
@@ -442,6 +645,7 @@ function doWhenReady(callback) {
           clearInterval(interval);
         });
         clearInterval(interval);
+        video.addEventListener('timeupdate', updatePlayHint);
       }
     }
   }, 500);
@@ -457,9 +661,11 @@ function lazyInit() {
 }
 
 function unsubscribeFromEvents() {
-  ['click', 'pageshow'].forEach((eventName) => {
-    window.removeEventListener(eventName, lazyInit);
-  });
+  setTimeout(() => {
+    ['click', 'pageshow'].forEach((eventName) => {
+      window.removeEventListener(eventName, lazyInit);
+    });
+  }, 10000);
 }
 
 ['click', 'pageshow'].forEach((eventName) => {

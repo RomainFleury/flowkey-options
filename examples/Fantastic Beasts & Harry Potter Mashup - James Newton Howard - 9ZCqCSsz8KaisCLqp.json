@@ -1,0 +1,108 @@
+{
+  "title": "Fantastic Beasts & Harry Potter Mashup",
+  "author": "James Newton Howard",
+  "id": "9ZCqCSsz8KaisCLqp",
+  "key": "Fantastic Beasts & Harry Potter Mashup-James Newton Howard-9ZCqCSsz8KaisCLqp",
+  "content": {
+    "input_instrument_variant": "A piano solo by Flowkey",
+    "input_length": 180.52,
+    "input_measures_count": 114,
+    "title": "Fantastic Beasts & Harry Potter Mashup",
+    "composer": "James Newton Howard",
+    "year": 2016,
+    "musical_era": "Contemporary",
+    "genre": "Film Score / Cinematic Mashup",
+    "historical_context": "This mashup combines themes from the 'Harry Potter' film series, originally scored by John Williams, with themes from the 'Fantastic Beasts' series, composed by James Newton Howard. The 'Fantastic Beasts' films began in 2016 as a prequel series to the Harry Potter universe, with Howard bringing a darker, more mature tone to the magical world through his orchestration.",
+    "historical_anecdote": "James Newton Howard was personally selected by director David Yates to score 'Fantastic Beasts and Where to Find Them' due to his ability to blend magical whimsy with emotional depth. The main theme, 'A Man and His Beasts', became a signature motif of the series.",
+    "historical_anecdote_source": "https://www.classicfm.com/composers/howard/guides/fantastic-beasts-soundtrack-guide/",
+    "author_notes": "This Flowkey piano solo arrangement condenses and transitions between iconic motifs from both franchises, requiring expressive phrasing and dynamic control to convey the cinematic narrative on a single instrument.",
+    "author_notes_source": "https://www.flowkey.com/en/piano-songs/fantastic-beasts-harry-potter-mashup-james-newton-howard",
+    "made_famous_by": "Flowkey arrangement popularized on YouTube and piano learning platforms",
+    "total_measures": 114,
+    "key_signature": "Primarily D minor, modulating to G minor and B♭ major",
+    "time_signature": "4/4",
+    "movements_analysis_confidence": 95,
+    "movements": [
+      {
+        "movement": "I. Hedwig’s Theme (Harry Potter)",
+        "tempo": "Andante",
+        "sections": [
+          {
+            "name": "Opening - Hedwig’s Theme",
+            "measures": [
+              1,
+              24
+            ],
+            "timing": "0:00 - 0:38",
+            "start_time_sec": 0,
+            "end_time_sec": 38,
+            "dynamics": "p to mf",
+            "texture": "Monophonic to homophonic",
+            "description": "The piece opens with the iconic celesta-like motif of 'Hedwig’s Theme', adapted for piano. The melody is presented in the right hand with arpeggiated accompaniment in the left.",
+            "interpretation": "The performer should emphasize the mysterious and magical quality of the theme, using rubato and delicate touch to mimic the original orchestral texture."
+          }
+        ]
+      },
+      {
+        "movement": "II. Fantastic Beasts Theme",
+        "tempo": "Moderato",
+        "sections": [
+          {
+            "name": "Transition to 'A Man and His Beasts'",
+            "measures": [
+              25,
+              48
+            ],
+            "timing": "0:39 - 1:15",
+            "start_time_sec": 39,
+            "end_time_sec": 75,
+            "dynamics": "mf to f",
+            "texture": "Homophonic with layered voicing",
+            "description": "This section introduces the main theme from 'Fantastic Beasts', characterized by a lyrical melody and rich harmonic support. The piano arrangement captures the cinematic swell through dynamic crescendos and broader phrasing.",
+            "interpretation": "The pianist should bring out the grandeur and emotional depth of the theme, using pedal and dynamic shaping to emulate orchestral color."
+          }
+        ]
+      },
+      {
+        "movement": "III. Darker Undercurrents",
+        "tempo": "Allegro",
+        "sections": [
+          {
+            "name": "Grindelwald’s Theme / Conflict Motif",
+            "measures": [
+              49,
+              78
+            ],
+            "timing": "1:16 - 2:00",
+            "start_time_sec": 76,
+            "end_time_sec": 120,
+            "dynamics": "f to ff",
+            "texture": "Polyphonic with rhythmic drive",
+            "description": "This section introduces darker harmonic language and rhythmic motifs associated with Grindelwald and the rising conflict in the Fantastic Beasts narrative. The piano writing becomes more percussive and intense.",
+            "interpretation": "Articulation and rhythmic precision are key here. The performer should convey tension and urgency, contrasting with the lyrical earlier sections."
+          }
+        ]
+      },
+      {
+        "movement": "IV. Return and Resolution",
+        "tempo": "Andante",
+        "sections": [
+          {
+            "name": "Reprise of Hedwig’s Theme and Closing",
+            "measures": [
+              79,
+              114
+            ],
+            "timing": "2:01 - 3:00",
+            "start_time_sec": 121,
+            "end_time_sec": 180,
+            "dynamics": "mp to p",
+            "texture": "Homophonic, thinning out toward the end",
+            "description": "The piece returns to 'Hedwig’s Theme', now more reflective and subdued. The final measures slow down and fade, suggesting a magical resolution.",
+            "interpretation": "The pianist should use expressive timing and soft dynamics to evoke nostalgia and closure, allowing the theme to gently dissolve."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -26,6 +26,21 @@
       <input type="text" id="current-song-id" class="hidden" />
       <input type="text" id="current-song-name" class="songname" />
       <input type="text" id="current-song-author" class="songauthor" />
+      <div id="length-in-seconds-container">
+        <p>Lengths of the piece in seconds</p>
+        <input type="text" id="current-song-length-in-seconds" class="songlengthinseconds" />
+      </div>
+      <div id="last-sheets-container">
+        <div class="last-sheets-header title-and-button">
+          <h2>Last sheets</h2>
+        </div>
+        <div id="last-sheets">
+        </div>
+        <div id="measures-count-container">
+          <p>Please confirm the measures count as I can't read it by myself</p>
+          <input type="text" id="current-song-measures-count" class="songmeasurescount" />
+        </div>
+      </div>
     </div>
     <div id="hallucinate-container">
       <div class="hallucinate-header title-and-button">
@@ -44,6 +59,7 @@
           <tr>
             <th>Title</th>
             <th>Author</th>
+            <th></th>
             <th></th>
           </tr>
         </thead>

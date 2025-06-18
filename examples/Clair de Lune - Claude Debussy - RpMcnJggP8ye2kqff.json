@@ -1,0 +1,73 @@
+{
+  "title": "Clair de Lune",
+  "author": "Claude Debussy",
+  "id": "RpMcnJggP8ye2kqff",
+  "key": "Clair de Lune-Claude Debussy-RpMcnJggP8ye2kqff",
+  "content": {
+    "title": "Clair de Lune",
+    "composer": "Claude Debussy",
+    "year": 1905,
+    "musical_era": "Impressionism",
+    "genre": "Solo piano",
+    "historical_context": "Clair de Lune is the third movement of Debussy’s Suite bergamasque, a four-movement suite for solo piano. Though the suite was begun in 1890, Debussy revised and published it in 1905. The title 'Clair de Lune' (French for 'Moonlight') was inspired by Paul Verlaine’s poem of the same name, reflecting the Impressionist movement’s fascination with atmosphere, mood, and suggestion rather than direct expression.",
+    "historical_anecdote": "Debussy originally titled the piece 'Promenade sentimentale' but later changed it to 'Clair de Lune' to align with Verlaine’s poem. The piece was composed during a period when Debussy was distancing himself from the Germanic traditions of form and harmonic development, favoring instead a more fluid and coloristic approach.",
+    "historical_anecdote_source": "Nichols, Roger. Debussy: A Painter in Sound. Yale University Press, 2018.",
+    "author_notes": "Clair de Lune is one of Debussy’s most beloved works, often used in film and media to evoke introspection and emotional depth. Its subtle harmonic shifts and delicate textures exemplify Debussy’s mastery of nuance and atmosphere.",
+    "author_notes_source": "Machlis, Joseph, and Kristine Forney. The Enjoyment of Music. W. W. Norton & Company, 2011.",
+    "made_famous_by": "Widely popularized through performances by Walter Gieseking and later by Isao Tomita’s electronic arrangement, as well as its inclusion in films such as 'Ocean’s Eleven' and 'Twilight'.",
+    "total_measures": 75,
+    "key_signature": "D-flat major",
+    "time_signature": "9/8",
+    "movements_analysis_confidence": 100,
+    "movements": [
+      {
+        "movement": "Clair de Lune",
+        "tempo": "Andante très expressif",
+        "sections": [
+          {
+            "name": "Introduction",
+            "measures": [
+              1,
+              15
+            ],
+            "timing": "0:00–1:30",
+            "start_time_sec": 0,
+            "end_time_sec": 90,
+            "dynamics": "pp to p",
+            "texture": "Homophonic with arpeggiated accompaniment",
+            "description": "A gentle, flowing introduction in D-flat major, characterized by broken chords in the left hand and a lyrical melody in the right. The rhythm is fluid, with rubato encouraged.",
+            "interpretation": "This section sets the mood of quiet introspection. Performers often use subtle rubato and pedal to create a shimmering, moonlit atmosphere."
+          },
+          {
+            "name": "Middle Section (Agitation)",
+            "measures": [
+              16,
+              43
+            ],
+            "timing": "1:30–3:45",
+            "start_time_sec": 90,
+            "end_time_sec": 225,
+            "dynamics": "p to mf, with crescendos",
+            "texture": "More contrapuntal, with increased rhythmic activity",
+            "description": "This section introduces more movement and harmonic tension. The melody becomes more animated, and the accompaniment more rhythmically driven. Modulations and chromaticism increase.",
+            "interpretation": "This passage represents emotional turbulence or a moment of reflection. The increased motion contrasts with the calm of the outer sections, suggesting a narrative arc."
+          },
+          {
+            "name": "Recapitulation and Coda",
+            "measures": [
+              44,
+              75
+            ],
+            "timing": "3:45–5:15",
+            "start_time_sec": 225,
+            "end_time_sec": 315,
+            "dynamics": "p to pp",
+            "texture": "Return to homophonic texture with arpeggios",
+            "description": "The opening theme returns, slightly varied and more subdued. The piece ends with a delicate coda that fades into silence.",
+            "interpretation": "The return of the main theme provides closure and a sense of peace. The final measures evoke the fading of moonlight, emphasizing Debussy’s impressionistic style."
+          }
+        ]
+      }
+    ]
+  }
+}

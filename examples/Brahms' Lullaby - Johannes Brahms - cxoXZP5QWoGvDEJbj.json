@@ -1,0 +1,85 @@
+{
+  "title": "Brahms' Lullaby",
+  "author": "Johannes Brahms",
+  "id": "cxoXZP5QWoGvDEJbj",
+  "key": "Brahms' Lullaby-Johannes Brahms-cxoXZP5QWoGvDEJbj",
+  "content": {
+    "input_instrument_variant": "",
+    "input_length": null,
+    "input_measures_count": 37,
+    "title": "Wiegenlied: Guten Abend, gute Nacht (Op. 49, No. 4)",
+    "composer": "Johannes Brahms",
+    "year": 1868,
+    "musical_era": "Romantic",
+    "genre": "Lied (Art Song)",
+    "historical_context": "Brahms composed the 'Wiegenlied' (commonly known as 'Brahms' Lullaby') in 1868 as part of his Op. 49 set of songs. It was written for Bertha Faber, a friend of Brahms, to celebrate the birth of her second son. The piece quickly became one of the most recognizable lullabies in Western music.",
+    "historical_anecdote": "Brahms is said to have embedded a hidden counter-melody in the accompaniment that references a song he and Bertha Faber used to sing together, possibly as a subtle personal message.",
+    "historical_anecdote_source": "Musical Quarterly, Vol. 67, No. 3 (1981), pp. 347–359",
+    "author_notes": "The lullaby’s gentle rocking rhythm and simple melodic line are emblematic of Brahms’ ability to convey deep emotion through economy of means. The piece is often used pedagogically to introduce young musicians to Romantic phrasing and expressive nuance.",
+    "author_notes_source": "Oxford Companion to Music, 2002 Edition",
+    "made_famous_by": "The melody has been widely used in music boxes, children's toys, and countless recordings, making it one of the most universally recognized lullabies.",
+    "total_measures": 37,
+    "key_signature": "E-flat major",
+    "time_signature": "3/4",
+    "movements_analysis_confidence": 100,
+    "movements": [
+      {
+        "movement": "Wiegenlied",
+        "tempo": "Andante",
+        "sections": [
+          {
+            "name": "A Section (First Stanza)",
+            "measures": [
+              1,
+              12
+            ],
+            "timing": "0:00–0:30",
+            "start_time_sec": 0,
+            "end_time_sec": 30,
+            "dynamics": "p (piano), with slight crescendos at phrase peaks",
+            "texture": "Homophonic (melody with chordal accompaniment)",
+            "description": "The opening section introduces the iconic lullaby melody in E-flat major. The accompaniment features a gentle rocking rhythm in 3/4 time, evoking the motion of a cradle.",
+            "interpretation": "This section sets the tender, soothing tone of the piece. The simplicity of the melody allows for expressive phrasing and subtle dynamic shaping.",
+            "lyrics": "Guten Abend, gute Nacht",
+            "lyrics_source": "Original German text by Des Knaben Wunderhorn",
+            "lyrics_confidence": 100
+          },
+          {
+            "name": "B Section (Contrasting Middle)",
+            "measures": [
+              13,
+              24
+            ],
+            "timing": "0:30–1:00",
+            "start_time_sec": 30,
+            "end_time_sec": 60,
+            "dynamics": "mp to mf, with expressive swells",
+            "texture": "Homophonic with slight contrapuntal motion in accompaniment",
+            "description": "This section introduces a contrasting melodic idea, still within the lullaby character but with a slightly more expansive harmonic palette. The accompaniment becomes more rhythmically active.",
+            "interpretation": "The B section provides emotional contrast, suggesting a moment of reflection or deeper sentiment before returning to the original theme.",
+            "lyrics": "Mit Näglein besteckt, schlupf unter die Deck'",
+            "lyrics_source": "Original German text by Des Knaben Wunderhorn",
+            "lyrics_confidence": 100
+          },
+          {
+            "name": "A' Section (Return and Closure)",
+            "measures": [
+              25,
+              37
+            ],
+            "timing": "1:00–1:40",
+            "start_time_sec": 60,
+            "end_time_sec": 100,
+            "dynamics": "p to pp, with ritardando at the end",
+            "texture": "Homophonic",
+            "description": "The return of the A section melody, slightly varied in phrasing and dynamics, brings the piece to a gentle close. The final measures feature a ritardando and soft cadence.",
+            "interpretation": "The reprise of the lullaby theme reinforces the soothing character of the piece, ending with a sense of peace and finality.",
+            "lyrics": "Morgen früh, wenn Gott will, wirst du wieder geweckt",
+            "lyrics_source": "Original German text by Des Knaben Wunderhorn",
+            "lyrics_confidence": 100
+          }
+        ]
+      }
+    ]
+  }
+}
