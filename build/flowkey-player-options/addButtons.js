@@ -10,6 +10,7 @@ const songInfoContainerId = 'song-info-container';
 const toggleSongInfoButtonId = 'toggle-song';
 const togglePlayingHintsButtonId = 'toggle-play-hints';
 const songButtonsContainerId = 'song-buttons-container';
+const statusDotId = 'status-dot';
 
 let currentSong = null;
 let currentAction = null;
@@ -108,9 +109,8 @@ function registerVideoTimeUpdate() {
 
 function updatePlayHint(event) {
   try {
-    console.log('updatePlayHint');
+    console.log('updatePlayHint', event);
     const playHintsContainer = getPlayingHintsContainer();
-    log(`updatePlayHint ~ event: ${event}`);
     const video = document.querySelector('.player-video');
     if (!video) {
       log('Video element not found');
@@ -119,9 +119,11 @@ function updatePlayHint(event) {
     const currentTime = video.currentTime;
     log(`updatePlayHint ~ currentTime: ${currentTime}`);
     const section = getPlayingHintsSection(currentTime);
-    if (section && playHintsContainer) {
+    const currentSectionId = getCurrentPlayingHintsSectionId();
+    if (section && section.timing !== currentSectionId) {
+      setCurrentPlayingHintsSection(section);
       playHintsContainer.innerHTML = `Current time: ${currentTime}
-${formatSection(section)}`;
+  ${formatSection(section)}`;
     }
   } catch (error) {
     log(`updatePlayHint ~ error: ${error}`);
@@ -132,24 +134,6 @@ function getPlayingHintsSection(currentTime) {
   if (!currentSong) {
     return undefined;
   }
-  // "movements": [
-  //     {
-  //       "movement": "Single Movement Ballad",
-  //       "tempo": "Slow (♩ = ~63 BPM)",
-  //       "sections": [
-  //         {
-  //           "name": "Intro",
-  //           "measures": [1, 4],
-  //           "timing": "0:00–0:15",
-  //           "start_time_sec": 0,
-  //           "end_time_sec": 15,
-  //           "dynamics": "mp",
-  //           "texture": "Homophonic",
-  //           "description": "A solo piano introduces the harmonic progression that underpins the entire song.",
-  //           "interpretation": "Establishes the intimate and reflective mood of the piece.",
-  //           "lyrics": null
-  //         },
-  //         {
   if (currentSong.content.movements.length === 0) {
     return undefined;
   }
@@ -165,7 +149,7 @@ function getPlayingHintsSection(currentTime) {
       })
     );
   }, undefined);
-  log(`getPlayingHintsSection ~ section: ${JSON.stringify(currentSection, null, 2)}`);
+
   if (!currentSection) {
     return undefined;
   }
@@ -267,6 +251,20 @@ function anyHaveBeenModified(elements) {
 // Standard html tools
 ////////////////////////////////////////////////////////
 
+function getContainerAndCreateIfNeeded(containerId, createFunction, inject = true) {
+  const mainContainer = getFlowkeyPlayerContainer();
+  if (!mainContainer) {
+    return;
+  }
+  const existing = document.getElementById(containerId);
+  if (existing) {
+    return existing;
+  }
+  const newContainer = createFunction();
+  mainContainer.appendChild(newContainer);
+  return newContainer;
+}
+
 // IT ONLY WORKS IF THE EXTENSION IS OPEN, SO ITS SHIT.
 // function askForSong() {
 //   chrome.runtime.sendMessage({type: "canIGetSongInfoPlease", songInfo: getSongInfo()});
@@ -310,15 +308,10 @@ function getSongInfo() {
 ////////////////////////////////////////////////////////
 
 function getSongInfoContainer() {
-  return document.getElementById(songInfoContainerId);
+  return getContainerAndCreateIfNeeded(songInfoContainerId, createSongInfoContainer);
 }
 
 function createSongInfoContainer() {
-  const existingSongInfoContainer = getSongInfoContainer();
-  if (existingSongInfoContainer) {
-    existingSongInfoContainer.remove();
-  }
-
   const songInfo = document.createElement('div');
   songInfo.setAttribute('id', songInfoContainerId);
   songInfo.style.position = 'absolute';
@@ -346,14 +339,10 @@ function createSongInfoContainer() {
 }
 
 function getSongButtonsContainer() {
-  return document.getElementById(songButtonsContainerId);
+  return getContainerAndCreateIfNeeded(songButtonsContainerId, createSongButtonsContainer, false);
 }
 
 function createSongButtonsContainer() {
-  const existingSongButtonsContainer = getSongButtonsContainer();
-  if (existingSongButtonsContainer) {
-    existingSongButtonsContainer.remove();
-  }
   const songButtonsContainer = document.createElement('div');
   songButtonsContainer.setAttribute('id', songButtonsContainerId);
   songButtonsContainer.style.display = 'flex';
@@ -387,21 +376,39 @@ const songButtonsStyles = {
 };
 
 function getPlayingHintsContainer() {
-  return document.getElementById(playHintsContainerId);
+  return getContainerAndCreateIfNeeded(playHintsContainerId, createPlayingHintsContainer);
+}
+
+const playingHintsContainerStyles = {
+  position: 'absolute',
+  zIndex: '1',
+  opacity: '0',
+  transition: 'opacity 0.3s ease-in-out',
+  top: '100px',
+  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  borderRadius: '1rem',
+};
+
+function getCurrentPlayingHintsSectionId() {
+  const playHintsContainer = document.getElementById(playHintsContainerId);
+  if (!playHintsContainer) {
+    return;
+  }
+  return playHintsContainer.getAttribute('data-section-id') || '';
+}
+
+function setCurrentPlayingHintsSection(section) {
+  const playHintsContainer = document.getElementById(playHintsContainerId);
+  if (!playHintsContainer) {
+    return;
+  }
+  playHintsContainer.setAttribute('data-section-id', section.timing);
 }
 
 function createPlayingHintsContainer() {
-  const existingPlayHintsContainer = getPlayingHintsContainer();
-  if (existingPlayHintsContainer) {
-    existingPlayHintsContainer.remove();
-  }
   const playHintsContainer = document.createElement('div');
   playHintsContainer.setAttribute('id', playHintsContainerId);
-  playHintsContainer.style.position = 'absolute';
-  playHintsContainer.style.zIndex = '1';
-  playHintsContainer.style.opacity = '0';
-  playHintsContainer.style.transition = 'opacity 0.3s ease-in-out';
-  playHintsContainer.style.top = '100px';
+  Object.assign(playHintsContainer.style, playingHintsContainerStyles);
   playHintsContainer.innerHTML = '';
   return playHintsContainer;
 }
@@ -437,26 +444,14 @@ function togglePlayingHints() {
 }
 
 function injectSongContainer() {
-  const mainContainer = getFlowkeyPlayerContainer();
-  if (!mainContainer) {
-    return;
-  }
   if (!currentSong) {
     return;
   }
-
-  // clean up existing song info container
-
-  const songInfoContainer = createSongInfoContainer();
-  mainContainer.appendChild(songInfoContainer);
-
-  const playHintsContainer = createPlayingHintsContainer();
-  mainContainer.appendChild(playHintsContainer);
-
+  getPlayingHintsContainer();
   // Buttons to hide and show song info and play hints
-  const songButtonsContainer = createSongButtonsContainer();
-  const buttonToggleSong = createButtonToggleSongInfo();
-  const buttonTogglePlayingHints = createButtonTogglePlayingHints();
+  const songButtonsContainer = getSongButtonsContainer();
+  const buttonToggleSong = getButtonToggleSongInfo();
+  const buttonTogglePlayingHints = getButtonTogglePlayingHints();
   songButtonsContainer.appendChild(buttonToggleSong);
   songButtonsContainer.appendChild(buttonTogglePlayingHints);
 
@@ -477,6 +472,10 @@ function injectCurrentSong() {
   `;
 }
 
+function getButtonToggleSongInfo() {
+  return getContainerAndCreateIfNeeded(toggleSongInfoButtonId, createButtonToggleSongInfo, false);
+}
+
 function createButtonToggleSongInfo() {
   const button = document.createElement('button');
   button.setAttribute('id', toggleSongInfoButtonId);
@@ -484,6 +483,10 @@ function createButtonToggleSongInfo() {
   button.addEventListener('click', toggleSongInfo);
   Object.assign(button.style, songButtonsStyles);
   return button;
+}
+
+function getButtonTogglePlayingHints() {
+  return getContainerAndCreateIfNeeded(togglePlayingHintsButtonId, createButtonTogglePlayingHints, false);
 }
 
 function createButtonTogglePlayingHints() {
@@ -594,29 +597,32 @@ function addButtons() {
 function init() {
   log('🚀 ~ init ~ init');
   if (currentAction === 'init') {
-    return;
+    return Promise.resolve();
   }
   currentAction = 'init';
   if (!window || !window.location) {
     currentAction = null;
     console.info('No window or location found');
-    return;
+    return Promise.resolve();
   }
   if (!pathNameConstraint.test(window.location.pathname)) {
     currentAction = null;
     console.info('Not playing');
-    return;
+    return Promise.resolve();
   }
   if (document.getElementById(extensionButtonsContainerId)) {
     console.info('Buttons already present.');
     unsubscribeFromEvents();
-    return;
+    return Promise.resolve();
   }
-  setTimeout(() => {
-    addButtons();
-    registerVideoTimeUpdate();
-    // askForSong(); // only works if the extension is open, so its shit.
-  }, 1000);
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      addButtons();
+      registerVideoTimeUpdate();
+      // askForSong(); // only works if the extension is open, so its shit.
+      resolve();
+    }, 1000);
+  });
 }
 
 function doWhenReady(callback) {
@@ -654,9 +660,11 @@ function doWhenReady(callback) {
 function lazyInit() {
   log('🚀 ~ lazyInit');
   currentAction = 'lazyInit';
+  setStatusDotColor('yellow');
 
   setTimeout(() => {
     doWhenReady(init);
+    setStatusDotColor('lightgreen');
   }, 1000);
 }
 
@@ -668,6 +676,149 @@ function unsubscribeFromEvents() {
   }, 10000);
 }
 
-['click', 'pageshow'].forEach((eventName) => {
-  window.addEventListener(eventName, lazyInit);
-});
+function insertStatusDot() {
+  const statusDiv = document.createElement('div');
+  statusDiv.setAttribute('id', statusDotId);
+  statusDiv.style.position = 'absolute';
+  statusDiv.style.top = '10px';
+  statusDiv.style.right = '10px';
+  statusDiv.style.width = '10px';
+  statusDiv.style.height = '10px';
+  statusDiv.style.borderRadius = '50%';
+  statusDiv.style.zIndex = '1';
+  statusDiv.style.backgroundColor = 'red';
+  document.body.appendChild(statusDiv);
+}
+
+function getStatusDot() {
+  const existing = document.getElementById(statusDotId);
+  if (existing) {
+    return existing;
+  }
+  insertStatusDot();
+  return document.getElementById(statusDotId);
+}
+
+function setStatusDotColor(color) {
+  const statusDot = getStatusDot();
+  if (!statusDot) {
+    return;
+  }
+  statusDot.style.backgroundColor = color;
+}
+
+(function () {
+  // insert a status div (a small dot in the top right corner, that just has a background color)
+  getStatusDot();
+  ['click', 'pageshow'].forEach((eventName) => {
+    window.addEventListener(eventName, lazyInit);
+  });
+  // Initialize page change listeners when the script loads
+  setupPageChangeListeners();
+})();
+
+// SO I want a reset function that reset the current action, the current song, injects the song container info, and resets the video time listener.
+// Also, I would like this reset to show an alert to the user so the user knows its ready.
+// The reset should only be called when a page is loaded and the page is a song page, like /player/song/id
+
+function reset() {
+  log('🔄 Resetting extension state...');
+  setStatusDotColor('red');
+
+  // Reset current action and song
+  currentAction = null;
+  currentSong = null;
+
+  // Remove existing containers
+  const existingSongInfoContainer = getSongInfoContainer();
+  if (existingSongInfoContainer) {
+    existingSongInfoContainer.remove();
+  }
+
+  const existingPlayHintsContainer = getPlayingHintsContainer();
+  if (existingPlayHintsContainer) {
+    existingPlayHintsContainer.remove();
+  }
+
+  const existingSongButtonsContainer = getSongButtonsContainer();
+  if (existingSongButtonsContainer) {
+    existingSongButtonsContainer.remove();
+  }
+
+  // Remove existing extension buttons
+  const existingExtensionButtons = document.getElementById(extensionButtonsContainerId);
+  if (existingExtensionButtons) {
+    existingExtensionButtons.remove();
+  }
+
+  // Remove video time update listener
+  const video = getPlayerVideo();
+  if (video) {
+    setStatusDotColor('yellow');
+    video.removeEventListener('timeupdate', updatePlayHint);
+  }
+
+  // Show alert to user
+  alert('🎵 Flowkey Options Extension: Ready for new song!');
+
+  log('✅ Extension state reset complete');
+  setStatusDotColor('green');
+}
+
+function isSongPage() {
+  return pathNameConstraint.test(window.location.pathname);
+}
+
+function handlePageChange() {
+  log('📄 Page change detected');
+
+  if (isSongPage()) {
+    log('🎵 Song page detected, resetting extension');
+    reset();
+
+    // Initialize for the new song page
+    setTimeout(() => {
+      setStatusDotColor('blue');
+      init().then(() => {
+        setStatusDotColor('teal');
+      });
+    }, 1000);
+  } else {
+    log('❌ Not a song page, skipping reset');
+  }
+}
+
+// Listen for page changes using different methods
+function setupPageChangeListeners() {
+  // Method 1: Listen for popstate (back/forward navigation)
+  window.addEventListener('popstate', handlePageChange);
+
+  // Method 2: Listen for pushstate/replacestate (programmatic navigation)
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function (...args) {
+    originalPushState.apply(history, args);
+    setTimeout(handlePageChange, 100);
+  };
+
+  history.replaceState = function (...args) {
+    originalReplaceState.apply(history, args);
+    setTimeout(handlePageChange, 100);
+  };
+
+  // Method 3: Listen for URL changes using MutationObserver
+  let lastUrl = location.href;
+  const observer = new MutationObserver(() => {
+    const url = location.href;
+    if (url !== lastUrl) {
+      lastUrl = url;
+      setStatusDotColor('purple');
+      setTimeout(handlePageChange, 100);
+    }
+  });
+
+  observer.observe(document, { subtree: true, childList: true });
+
+  log('📡 Page change listeners setup complete');
+}
