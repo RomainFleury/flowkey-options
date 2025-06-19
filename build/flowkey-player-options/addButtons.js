@@ -1,3 +1,7 @@
+////////////////////////////////////////////////////////
+// CONSTANTS AND CONFIGURATION
+////////////////////////////////////////////////////////
+
 const pathNameConstraint = /^\/player\/.*/;
 
 const extensionButtonsContainerId = 'flowkey-extension';
@@ -47,141 +51,7 @@ const EXTENSION_STATES = {
   RESET_COMPLETE: { name: 'Reset Complete', color: 'lime', description: 'Reset completed successfully' },
 };
 
-let currentExtensionState = EXTENSION_STATES.UNINITIALIZED;
-let loadingTimeout = null;
-
-let currentSong = null;
-let currentAction = null;
-
-// THIS CODE IS IN THE WEBSITE
-
-const HIDE_LOGS = false;
-
-function log(...message) {
-  if (HIDE_LOGS) {
-    return;
-  }
-  console.log(`🚀 [Flowkey Options Extension] ${message[0]}`, ...message.slice(1));
-}
-
-////////////////////////////////////////////////////////
-// MESSAGE HANDLING
-////////////////////////////////////////////////////////
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  handleMessage(message, sender, sendResponse);
-  return true;
-});
-
-function handleMessage(message, sender, sendResponse) {
-  log('handleMessage', message, sender);
-  switch (message.type) {
-    case 'contentSync':
-      contentSync(sendResponse);
-      break;
-    case 'getSongInfo':
-      getSongInfoMessage(sendResponse);
-      break;
-    case 'sendSong':
-      receiveSong(message.song);
-      sendResponse({ type: 'songReceived' });
-      forceReset();
-      break;
-    case 'displayButtons':
-      init();
-      break;
-    default:
-      log('Unknown message type', message.type);
-      break;
-  }
-}
-
-function getSongInfoMessage(sendResponse) {
-  const songInfo = getSongInfo();
-  log(`getSongInfoMessage ~ songInfo ${JSON.stringify(songInfo, null, 2)}`);
-  sendResponse(songInfo);
-}
-
-function receiveSong(song) {
-  log(`receiveSong ~ song ${JSON.stringify(song, null, 2)}`);
-  setExtensionState('SONG_LOADING');
-  currentSong = song;
-  // inject song in the page
-  injectCurrentSong();
-  setExtensionState('SONG_LOADED');
-}
-
-////////////////////////////////////////////////////////
-// VIDEO HANDLING
-////////////////////////////////////////////////////////
-
-function getCurrentTime() {
-  // player-video-container > .player-video
-  const video = document.querySelector('.player-video'); //  as HTMLVideoElement
-  if (!video) {
-    log('Video element not found');
-    return 0;
-  }
-  const currentTime = video.currentTime;
-  return currentTime || 0;
-}
-
-function registerVideoTimeUpdate() {
-  const video = document.querySelector('.player-video'); //  as HTMLVideoElement
-  if (!video) {
-    log('[Flowkey Sync] Video element not found');
-    return;
-  }
-  video.addEventListener('timeupdate', updatePlayHint);
-  return () => video.removeEventListener('timeupdate', updatePlayHint);
-}
-
-let lastCurrentTime = 0;
-function updatePlayHint(event) {
-  try {
-    const currentTime = event?.target?.currentTime ? Math.floor(event.target.currentTime) : getCurrentTime();
-    const currentSectionId = getCurrentPlayingHintsSectionId();
-    if (currentTime === lastCurrentTime && currentSectionId) {
-      return;
-    }
-    lastCurrentTime = currentTime;
-    log(`updatePlayHint ~ currentTime: ${currentTime}`);
-    const playHintsContainer = getPlayingHintsContainer();
-    const section = getPlayingHintsSection(currentTime);
-    if (section && section.timing !== currentSectionId) {
-      setCurrentPlayingHintsSection(section, playHintsContainer);
-    }
-  } catch (error) {
-    log(`updatePlayHint ~ error: ${error}`);
-  }
-}
-
-function getPlayingHintsSection(currentTime) {
-  if (!currentSong) {
-    return undefined;
-  }
-  if (currentSong.content.movements.length === 0) {
-    return undefined;
-  }
-  const currentSection = currentSong.content.movements.reduce((foundSection, movement) => {
-    return (
-      foundSection ||
-      movement.sections.find((section) => {
-        return currentTime >= section.start_time_sec && currentTime <= section.end_time_sec;
-      })
-    );
-  }, undefined);
-
-  if (!currentSection) {
-    return undefined;
-  }
-
-  return currentSection;
-}
-
-////////////////////////////////////////////////////////
-// App tools and values
-////////////////////////////////////////////////////////
-
+// App CSS class constants
 const flowkeyPlayerClass = 'flowkey-player';
 const playerVideoContainerClass = 'player-video-container';
 const sheetContainerClass = 'sheet-container';
@@ -194,11 +64,202 @@ const songViewInfoContainerClass = 'song-info-view';
 const playButtonClass = 'play-button';
 const playerVideoClass = 'player-video';
 
+// Button styles
+const buttonActiveStyles = {
+  backgroundColor: 'var(--main-color)',
+  color: 'white',
+};
+
+const buttonInactiveStyles = {
+  backgroundColor: 'rgba(255, 255, 255, 1)',
+  color: 'var(--main-color)',
+};
+
+const songButtonsStyles = {
+  ...buttonInactiveStyles,
+  borderRadius: '1rem',
+  border: '1px solid var(--main-color)',
+  height: '32px',
+  width: '32px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+};
+
+const playingHintsContainerStyles = {
+  position: 'absolute',
+  zIndex: '1',
+  opacity: '0',
+  transition: 'opacity 0.3s ease-in-out',
+  top: '100px',
+  padding: '1rem',
+  margin: '1rem',
+  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  borderRadius: '1rem',
+};
+
+////////////////////////////////////////////////////////
+// GLOBAL STATE VARIABLES
+////////////////////////////////////////////////////////
+
+let currentExtensionState = EXTENSION_STATES.UNINITIALIZED;
+let loadingTimeout = null;
+let currentSong = null;
+let currentAction = null;
+let lastCurrentTime = 0;
+
+// THIS CODE IS IN THE WEBSITE
+const HIDE_LOGS = false;
+
+////////////////////////////////////////////////////////
+// UTILITY FUNCTIONS
+////////////////////////////////////////////////////////
+
+function log(...message) {
+  if (HIDE_LOGS) {
+    return;
+  }
+  console.log(`🚀 [Flowkey Options Extension] ${message[0]}`, ...message.slice(1));
+}
+
 function getFirstElementByClassName(className) {
   const potentialElements = document.getElementsByClassName(className);
   const potentialElement = potentialElements.item(0);
   return potentialElement || false;
 }
+
+function resetPlacement() {
+  // we use the app management of window resize to reset the values
+  const targetWidth = window.outerWidth;
+  const targetHeight = window.outerHeight;
+  window.resizeTo(targetWidth - 1, targetHeight - 1);
+  setTimeout(() => {
+    window.resizeTo(targetWidth, targetHeight);
+  }, 100);
+}
+
+function markModified(elements) {
+  elements.forEach((element) => {
+    element.classList.add(modifiedInfoClass);
+  });
+}
+
+function unmarkModified(elements) {
+  elements.forEach((element) => {
+    element.classList.remove(modifiedInfoClass);
+  });
+}
+
+function anyHaveBeenModified(elements) {
+  return elements.some((element) => {
+    return element.classList.contains(modifiedInfoClass);
+  });
+}
+
+////////////////////////////////////////////////////////
+// STATE MANAGEMENT
+////////////////////////////////////////////////////////
+
+function setExtensionState(newState) {
+  if (!EXTENSION_STATES[newState]) {
+    log(`❌ Invalid state: ${newState}`);
+    return;
+  }
+
+  const previousState = currentExtensionState;
+
+  // Prevent getting stuck in loading states
+  if (newState === 'LOADING' && (previousState.name === 'Loading' || previousState.name === 'Initializing')) {
+    log(`⚠️ Skipping LOADING state transition from ${previousState.name}`);
+    return;
+  }
+
+  // Clear any existing loading timeout
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
+  }
+
+  currentExtensionState = EXTENSION_STATES[newState];
+
+  const statusDot = getStatusDot();
+  if (statusDot) {
+    statusDot.style.backgroundColor = currentExtensionState.color;
+    statusDot.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
+  }
+
+  log(`🔄 State changed: ${previousState.name} → ${currentExtensionState.name}`);
+
+  // Set timeout for loading states to prevent getting stuck
+  if (newState === 'LOADING' || newState === 'INITIALIZING' || newState === 'SONG_LOADING') {
+    loadingTimeout = setTimeout(() => {
+      log(`⚠️ Loading state timeout reached for ${newState}, forcing to READY`);
+      setExtensionState('READY');
+    }, 10000); // 10 second timeout
+  }
+}
+
+// Manual reset function to get out of stuck states
+function forceReset() {
+  log('🆘 Force reset called - clearing all timeouts and resetting state');
+
+  // Clear any loading timeout
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
+  }
+
+  // Reset action
+  currentAction = null;
+
+  // Force to ready state
+  setExtensionState('READY');
+
+  log('✅ Force reset complete');
+}
+
+// Expose force reset globally for debugging
+window.flowkeyForceReset = forceReset;
+
+////////////////////////////////////////////////////////
+// STATUS DOT MANAGEMENT
+////////////////////////////////////////////////////////
+
+function insertStatusDot() {
+  const statusDiv = document.createElement('div');
+  statusDiv.setAttribute('id', statusDotId);
+  statusDiv.style.position = 'absolute';
+  statusDiv.style.top = '10px';
+  statusDiv.style.right = '10px';
+  statusDiv.style.width = '10px';
+  statusDiv.style.height = '10px';
+  statusDiv.style.borderRadius = '50%';
+  statusDiv.style.zIndex = '1';
+  statusDiv.style.backgroundColor = currentExtensionState.color;
+  statusDiv.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
+  document.body.appendChild(statusDiv);
+}
+
+function getStatusDot() {
+  const existing = document.getElementById(statusDotId);
+  if (existing) {
+    return existing;
+  }
+  insertStatusDot();
+  return document.getElementById(statusDotId);
+}
+
+function setStatusDotColor(color) {
+  // Legacy function for backward compatibility
+  const statusDot = getStatusDot();
+  if (!statusDot) {
+    return;
+  }
+  statusDot.style.backgroundColor = color;
+}
+
+////////////////////////////////////////////////////////
+// DOM ELEMENT GETTERS
+////////////////////////////////////////////////////////
 
 function getFlowkeyPlayerContainer() {
   return getFirstElementByClassName(flowkeyPlayerClass);
@@ -240,36 +301,8 @@ function getMainControlsContainer() {
   return getFirstElementByClassName(mainControlsClass);
 }
 
-function resetPlacement() {
-  // we use the app management of window resize to reset the values
-  const targetWidth = window.outerWidth;
-  const targetHeight = window.outerHeight;
-  window.resizeTo(targetWidth - 1, targetHeight - 1);
-  setTimeout(() => {
-    window.resizeTo(targetWidth, targetHeight);
-  }, 100);
-}
-
-function markModified(elements) {
-  elements.forEach((element) => {
-    element.classList.add(modifiedInfoClass);
-  });
-}
-
-function unmarkModified(elements) {
-  elements.forEach((element) => {
-    element.classList.remove(modifiedInfoClass);
-  });
-}
-
-function anyHaveBeenModified(elements) {
-  return elements.some((element) => {
-    return element.classList.contains(modifiedInfoClass);
-  });
-}
-
 ////////////////////////////////////////////////////////
-// Standard html tools
+// CONTAINER MANAGEMENT
 ////////////////////////////////////////////////////////
 
 function getContainerAndCreateIfNeeded(containerId, createFunction, inject = true) {
@@ -285,48 +318,6 @@ function getContainerAndCreateIfNeeded(containerId, createFunction, inject = tru
   mainContainer.appendChild(newContainer);
   return newContainer;
 }
-
-// IT ONLY WORKS IF THE EXTENSION IS OPEN, SO ITS SHIT.
-// function askForSong() {
-//   chrome.runtime.sendMessage({type: "canIGetSongInfoPlease", songInfo: getSongInfo()});
-// }
-
-////////////////////////////////////////////////////////
-// Song and data handling
-////////////////////////////////////////////////////////
-
-function getSongInfo() {
-  const songInfoView = document.querySelector('.song-info-view');
-  if (!songInfoView) return null;
-
-  const author = songInfoView.querySelector('span')?.textContent || '';
-  const title = songInfoView.querySelector('h4')?.textContent || '';
-  const idFromUrl = window.location.href.split('/').pop();
-
-  const measuresCount = 0;
-  log(`Duration: ${document.querySelector('.player-video')?.duration}`);
-  const lengthInSeconds = document.querySelector('.player-video')?.duration || 0;
-  const sheetContainer = getFirstElementByClassName('sheet-container');
-  const lastTwoSheets = Array.from(sheetContainer.querySelectorAll('.sheet-image')).reverse().slice(0, 2);
-  const lastSheets = lastTwoSheets.map((sheetElement) => {
-    return sheetElement.style.backgroundImage.split('url(')[1].split(')')[0].replaceAll(/\"/g, '').trim();
-  });
-
-  log(`lastTwoSheets: ${JSON.stringify(lastSheets, null, 2)}`);
-  log('[Flowkey Sync] Song info', {
-    title,
-    author,
-    idFromUrl,
-    measuresCount,
-    lengthInSeconds,
-    lastSheets,
-  });
-  return { title, author, idFromUrl, measuresCount, lengthInSeconds, lastSheets };
-}
-
-////////////////////////////////////////////////////////
-// OTHER HTML TOOLS
-////////////////////////////////////////////////////////
 
 function getSongInfoContainer() {
   return getContainerAndCreateIfNeeded(songInfoContainerId, createSongInfoContainer);
@@ -376,55 +367,8 @@ function createSongButtonsContainer() {
   return songButtonsContainer;
 }
 
-const buttonActiveStyles = {
-  backgroundColor: 'var(--main-color)',
-  color: 'white',
-};
-
-const buttonInactiveStyles = {
-  backgroundColor: 'rgba(255, 255, 255, 1)',
-  color: 'var(--main-color)',
-};
-
-const songButtonsStyles = {
-  ...buttonInactiveStyles,
-  borderRadius: '1rem',
-  border: '1px solid var(--main-color)',
-  height: '32px',
-  width: '32px',
-  fontSize: '1rem',
-  cursor: 'pointer',
-};
-
 function getPlayingHintsContainer() {
   return getContainerAndCreateIfNeeded(playHintsContainerId, createPlayingHintsContainer);
-}
-
-const playingHintsContainerStyles = {
-  position: 'absolute',
-  zIndex: '1',
-  opacity: '0',
-  transition: 'opacity 0.3s ease-in-out',
-  top: '100px',
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  borderRadius: '1rem',
-};
-
-function getCurrentPlayingHintsSectionId() {
-  const playHintsContainer = document.getElementById(playHintsContainerId);
-  if (!playHintsContainer) {
-    return;
-  }
-  return playHintsContainer.getAttribute('data-section-id') || '';
-}
-
-function setCurrentPlayingHintsSection(section) {
-  const playHintsContainer = document.getElementById(playHintsContainerId);
-  if (!playHintsContainer) {
-    return;
-  }
-  playHintsContainer.setAttribute('data-section-id', section.timing);
-  playHintsContainer.innerHTML = formatSection(section);
 }
 
 function createPlayingHintsContainer() {
@@ -434,6 +378,213 @@ function createPlayingHintsContainer() {
   playHintsContainer.innerHTML = '';
   return playHintsContainer;
 }
+
+function getCurrentPlayingHintsSectionId() {
+  const playHintsContainer = document.getElementById(playHintsContainerId);
+  if (!playHintsContainer) {
+    return;
+  }
+  return playHintsContainer.getAttribute('data-section-id') || '';
+}
+
+function setCurrentPlayingHintsSection(section, playHintsContainer) {
+  if (!playHintsContainer) {
+    playHintsContainer = document.getElementById(playHintsContainerId);
+  }
+  if (!playHintsContainer) {
+    return;
+  }
+  playHintsContainer.setAttribute('data-section-id', section.timing);
+  playHintsContainer.innerHTML = formatSection(section);
+}
+
+function getButtonToggleSongInfo() {
+  return getContainerAndCreateIfNeeded(toggleSongInfoButtonId, createButtonToggleSongInfo, false);
+}
+
+function createButtonToggleSongInfo() {
+  const button = document.createElement('button');
+  button.setAttribute('id', toggleSongInfoButtonId);
+  button.innerHTML = '&#8505;';
+  button.addEventListener('click', toggleSongInfo);
+  Object.assign(button.style, songButtonsStyles);
+  return button;
+}
+
+function getButtonTogglePlayingHints() {
+  return getContainerAndCreateIfNeeded(togglePlayingHintsButtonId, createButtonTogglePlayingHints, false);
+}
+
+function createButtonTogglePlayingHints() {
+  const button = document.createElement('button');
+  button.setAttribute('id', togglePlayingHintsButtonId);
+  button.innerHTML = '👯';
+  button.addEventListener('click', togglePlayingHints);
+  Object.assign(button.style, songButtonsStyles);
+  return button;
+}
+
+////////////////////////////////////////////////////////
+// VIDEO HANDLING
+////////////////////////////////////////////////////////
+
+function getCurrentTime() {
+  // player-video-container > .player-video
+  const video = document.querySelector('.player-video'); //  as HTMLVideoElement
+  if (!video) {
+    log('Video element not found');
+    return 0;
+  }
+  const currentTime = video.currentTime;
+  return currentTime || 0;
+}
+
+function registerVideoTimeUpdate() {
+  const video = document.querySelector('.player-video'); //  as HTMLVideoElement
+  if (!video) {
+    log('[Flowkey Sync] Video element not found');
+    return;
+  }
+  video.addEventListener('timeupdate', updatePlayHint);
+  return () => video.removeEventListener('timeupdate', updatePlayHint);
+}
+
+function updatePlayHint(event) {
+  try {
+    const currentTime = event?.target?.currentTime ? Math.floor(event.target.currentTime) : getCurrentTime();
+    const currentSectionId = getCurrentPlayingHintsSectionId();
+    if (currentTime === lastCurrentTime && currentSectionId) {
+      return;
+    }
+    lastCurrentTime = currentTime;
+    log(`updatePlayHint ~ currentTime: ${currentTime}`);
+    const playHintsContainer = getPlayingHintsContainer();
+    const section = getPlayingHintsSection(currentTime);
+    if (section && section.timing !== currentSectionId) {
+      setCurrentPlayingHintsSection(section, playHintsContainer);
+    }
+  } catch (error) {
+    log(`updatePlayHint ~ error: ${error}`);
+  }
+}
+
+function getPlayingHintsSection(currentTime) {
+  if (!currentSong) {
+    return undefined;
+  }
+  if (currentSong.content.movements.length === 0) {
+    return undefined;
+  }
+  const currentSection = currentSong.content.movements.reduce((foundSection, movement) => {
+    return (
+      foundSection ||
+      movement.sections.find((section) => {
+        return currentTime >= section.start_time_sec && currentTime <= section.end_time_sec;
+      })
+    );
+  }, undefined);
+
+  if (!currentSection) {
+    return undefined;
+  }
+
+  return currentSection;
+}
+
+////////////////////////////////////////////////////////
+// SONG DATA HANDLING
+////////////////////////////////////////////////////////
+
+function getSongInfo() {
+  const songInfoView = document.querySelector('.song-info-view');
+  if (!songInfoView) return null;
+
+  const author = songInfoView.querySelector('span')?.textContent || '';
+  const title = songInfoView.querySelector('h4')?.textContent || '';
+  const idFromUrl = window.location.href.split('/').pop();
+
+  const measuresCount = 0;
+  log(`Duration: ${document.querySelector('.player-video')?.duration}`);
+  const lengthInSeconds = document.querySelector('.player-video')?.duration || 0;
+  const sheetContainer = getFirstElementByClassName('sheet-container');
+  const lastTwoSheets = Array.from(sheetContainer.querySelectorAll('.sheet-image')).reverse().slice(0, 2);
+  const lastSheets = lastTwoSheets.map((sheetElement) => {
+    return sheetElement.style.backgroundImage.split('url(')[1].split(')')[0].replaceAll(/\"/g, '').trim();
+  });
+
+  log(`lastTwoSheets: ${JSON.stringify(lastSheets, null, 2)}`);
+  log('[Flowkey Sync] Song info', {
+    title,
+    author,
+    idFromUrl,
+    measuresCount,
+    lengthInSeconds,
+    lastSheets,
+  });
+  return { title, author, idFromUrl, measuresCount, lengthInSeconds, lastSheets };
+}
+
+function formatSection(section) {
+  return `
+    <h3>${section.name} (${section.timing})</h3>
+    <p>Dynamics: ${section.dynamics}</p>
+    <p>Texture: ${section.texture}</p>
+    <p>Description: ${section.description}</p>
+    <p>Interpretation: ${section.interpretation}</p>
+    ${section.lyrics ? `<p>Lyrics: ${section.lyrics}…</p>` : ''}
+  `;
+}
+
+////////////////////////////////////////////////////////
+// MESSAGE HANDLING
+////////////////////////////////////////////////////////
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleMessage(message, sender, sendResponse);
+  return true;
+});
+
+function handleMessage(message, sender, sendResponse) {
+  log('handleMessage', message, sender);
+  switch (message.type) {
+    case 'contentSync':
+      contentSync(sendResponse);
+      break;
+    case 'getSongInfo':
+      getSongInfoMessage(sendResponse);
+      break;
+    case 'sendSong':
+      receiveSong(message.song);
+      sendResponse({ type: 'songReceived' });
+      forceReset();
+      break;
+    case 'displayButtons':
+      init();
+      break;
+    default:
+      log('Unknown message type', message.type);
+      break;
+  }
+}
+
+function getSongInfoMessage(sendResponse) {
+  const songInfo = getSongInfo();
+  log(`getSongInfoMessage ~ songInfo ${JSON.stringify(songInfo, null, 2)}`);
+  sendResponse(songInfo);
+}
+
+function receiveSong(song) {
+  log(`receiveSong ~ song ${JSON.stringify(song, null, 2)}`);
+  setExtensionState('SONG_LOADING');
+  currentSong = song;
+  // inject song in the page
+  injectCurrentSong();
+  setExtensionState('SONG_LOADED');
+}
+
+////////////////////////////////////////////////////////
+// UI INTERACTION FUNCTIONS
+////////////////////////////////////////////////////////
 
 function toggleContainer(container, buttonId, additionalAction) {
   const toggleButton = document.getElementById(buttonId);
@@ -487,46 +638,10 @@ function injectCurrentSong() {
   `;
 }
 
-function getButtonToggleSongInfo() {
-  return getContainerAndCreateIfNeeded(toggleSongInfoButtonId, createButtonToggleSongInfo, false);
-}
-
-function createButtonToggleSongInfo() {
-  const button = document.createElement('button');
-  button.setAttribute('id', toggleSongInfoButtonId);
-  button.innerHTML = '&#8505;';
-  button.addEventListener('click', toggleSongInfo);
-  Object.assign(button.style, songButtonsStyles);
-  return button;
-}
-
-function getButtonTogglePlayingHints() {
-  return getContainerAndCreateIfNeeded(togglePlayingHintsButtonId, createButtonTogglePlayingHints, false);
-}
-
-function createButtonTogglePlayingHints() {
-  const button = document.createElement('button');
-  button.setAttribute('id', togglePlayingHintsButtonId);
-  button.innerHTML = '👯';
-  button.addEventListener('click', togglePlayingHints);
-  Object.assign(button.style, songButtonsStyles);
-  return button;
-}
-
-function formatSection(section) {
-  return `
-    <h3>${section.name} (${section.timing})</h3>
-    <p>Dynamics: ${section.dynamics}</p>
-    <p>Texture: ${section.texture}</p>
-    <p>Description: ${section.description}</p>
-    <p>Interpretation: ${section.interpretation}</p>
-    ${section.lyrics ? `<p>Lyrics: ${section.lyrics}…</p>` : ''}
-  `;
-}
-
 ////////////////////////////////////////////////////////
-// Buttons setup in the standard buttons bar
+// BUTTON CREATION AND MANAGEMENT
 ////////////////////////////////////////////////////////
+
 function addButton(container, name, label, title, onclick) {
   const button = document.createElement('button');
   button.setAttribute('name', name);
@@ -582,9 +697,6 @@ function addButtonAlwaysVisible(container) {
   });
 }
 
-////////////////////////////////////////////////////////
-// Add all buttons init method
-////////////////////////////////////////////////////////
 function addButtons() {
   const container = getPlayButtonAndHandsContainer();
   if (!container) {
@@ -607,8 +719,9 @@ function addButtons() {
 }
 
 ////////////////////////////////////////////////////////
-// Global init
+// INITIALIZATION AND LIFECYCLE
 ////////////////////////////////////////////////////////
+
 function init() {
   log('🚀 ~ init ~ init');
   if (currentAction === 'init') {
@@ -703,91 +816,9 @@ function unsubscribeFromEvents() {
   }, 10000);
 }
 
-function insertStatusDot() {
-  const statusDiv = document.createElement('div');
-  statusDiv.setAttribute('id', statusDotId);
-  statusDiv.style.position = 'absolute';
-  statusDiv.style.top = '10px';
-  statusDiv.style.right = '10px';
-  statusDiv.style.width = '10px';
-  statusDiv.style.height = '10px';
-  statusDiv.style.borderRadius = '50%';
-  statusDiv.style.zIndex = '1';
-  statusDiv.style.backgroundColor = currentExtensionState.color;
-  statusDiv.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
-  document.body.appendChild(statusDiv);
-}
-
-function getStatusDot() {
-  const existing = document.getElementById(statusDotId);
-  if (existing) {
-    return existing;
-  }
-  insertStatusDot();
-  return document.getElementById(statusDotId);
-}
-
-function setExtensionState(newState) {
-  if (!EXTENSION_STATES[newState]) {
-    log(`❌ Invalid state: ${newState}`);
-    return;
-  }
-
-  const previousState = currentExtensionState;
-
-  // Prevent getting stuck in loading states
-  if (newState === 'LOADING' && (previousState.name === 'Loading' || previousState.name === 'Initializing')) {
-    log(`⚠️ Skipping LOADING state transition from ${previousState.name}`);
-    return;
-  }
-
-  // Clear any existing loading timeout
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
-    loadingTimeout = null;
-  }
-
-  currentExtensionState = EXTENSION_STATES[newState];
-
-  const statusDot = getStatusDot();
-  if (statusDot) {
-    statusDot.style.backgroundColor = currentExtensionState.color;
-    statusDot.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
-  }
-
-  log(`🔄 State changed: ${previousState.name} → ${currentExtensionState.name}`);
-
-  // Set timeout for loading states to prevent getting stuck
-  if (newState === 'LOADING' || newState === 'INITIALIZING' || newState === 'SONG_LOADING') {
-    loadingTimeout = setTimeout(() => {
-      log(`⚠️ Loading state timeout reached for ${newState}, forcing to READY`);
-      setExtensionState('READY');
-    }, 10000); // 10 second timeout
-  }
-}
-
-function setStatusDotColor(color) {
-  // Legacy function for backward compatibility
-  const statusDot = getStatusDot();
-  if (!statusDot) {
-    return;
-  }
-  statusDot.style.backgroundColor = color;
-}
-
-(function () {
-  // insert a status div (a small dot in the top right corner, that just has a background color)
-  getStatusDot();
-  ['click', 'pageshow'].forEach((eventName) => {
-    window.addEventListener(eventName, lazyInit);
-  });
-  // Initialize page change listeners when the script loads
-  setupPageChangeListeners();
-})();
-
-// SO I want a reset function that reset the current action, the current song, injects the song container info, and resets the video time listener.
-// Also, I would like this reset to show an alert to the user so the user knows its ready.
-// The reset should only be called when a page is loaded and the page is a song page, like /player/song/id
+////////////////////////////////////////////////////////
+// PAGE CHANGE HANDLING
+////////////////////////////////////////////////////////
 
 function reset() {
   log('🔄 Resetting extension state...');
@@ -826,7 +857,7 @@ function reset() {
   }
 
   // Show alert to user
-  alert('🎵 Flowkey Options Extension: Ready for new song!');
+  log('🎵 Flowkey Options Extension: Ready for new song!');
 
   log('✅ Extension state reset complete');
   setExtensionState('RESET_COMPLETE');
@@ -891,24 +922,16 @@ function setupPageChangeListeners() {
   log('📡 Page change listeners setup complete');
 }
 
-// Manual reset function to get out of stuck states
-function forceReset() {
-  log('🆘 Force reset called - clearing all timeouts and resetting state');
+////////////////////////////////////////////////////////
+// MAIN INITIALIZATION
+////////////////////////////////////////////////////////
 
-  // Clear any loading timeout
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
-    loadingTimeout = null;
-  }
-
-  // Reset action
-  currentAction = null;
-
-  // Force to ready state
-  setExtensionState('READY');
-
-  log('✅ Force reset complete');
-}
-
-// Expose force reset globally for debugging
-window.flowkeyForceReset = forceReset;
+(function () {
+  // insert a status div (a small dot in the top right corner, that just has a background color)
+  getStatusDot();
+  ['click', 'pageshow'].forEach((eventName) => {
+    window.addEventListener(eventName, lazyInit);
+  });
+  // Initialize page change listeners when the script loads
+  setupPageChangeListeners();
+})();

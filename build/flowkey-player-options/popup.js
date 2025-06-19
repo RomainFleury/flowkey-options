@@ -153,6 +153,10 @@ async function fetchCurrentSongNameAndAuthor() {
   logMessage('Fetching current song name and author');
   return new Promise((resolve) => {
     sendMessageToTab({ type: 'getSongInfo' }, (response) => {
+      if (!response) {
+        logMessage('🙏 No song info received');
+        return;
+      }
       logMessage(`Received song info: ${response.title} - ${response.author} - ${response.idFromUrl}`);
       document.getElementById('current-song-name').value = response.title;
       document.getElementById('current-song-author').value = response.author;
