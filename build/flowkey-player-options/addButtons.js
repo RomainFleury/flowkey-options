@@ -12,6 +12,43 @@ const togglePlayingHintsButtonId = 'toggle-play-hints';
 const songButtonsContainerId = 'song-buttons-container';
 const statusDotId = 'status-dot';
 
+// State management system
+const EXTENSION_STATES = {
+  // Initial/Error states
+  UNINITIALIZED: { name: 'Uninitialized', color: 'red', description: 'Extension not loaded or error occurred' },
+  ERROR: { name: 'Error', color: 'darkred', description: 'An error has occurred' },
+
+  // Page detection states
+  PAGE_CHANGE_DETECTED: {
+    name: 'Page Change Detected',
+    color: 'purple',
+    description: 'Navigation to new page detected',
+  },
+  NOT_SONG_PAGE: { name: 'Not Song Page', color: 'gray', description: 'Current page is not a song player page' },
+
+  // Loading/Initialization states
+  LOADING: { name: 'Loading', color: 'yellow', description: 'Extension is loading and initializing' },
+  INITIALIZING: { name: 'Initializing', color: 'orange', description: 'Setting up extension components' },
+
+  // Ready states
+  READY: { name: 'Ready', color: 'lightgreen', description: 'Extension is ready and waiting for song data' },
+  INITIALIZED: { name: 'Initialized', color: 'green', description: 'Extension fully initialized with buttons' },
+
+  // Song data states
+  SONG_LOADING: { name: 'Song Loading', color: 'blue', description: 'Loading song data from server' },
+  SONG_LOADED: { name: 'Song Loaded', color: 'lightblue', description: 'Song data loaded and displayed' },
+
+  // Playback states
+  PLAYING: { name: 'Playing', color: 'cyan', description: 'Song is currently playing' },
+  PAUSED: { name: 'Paused', color: 'pink', description: 'Song is paused' },
+
+  // Reset states
+  RESETTING: { name: 'Resetting', color: 'coral', description: 'Extension state is being reset' },
+  RESET_COMPLETE: { name: 'Reset Complete', color: 'lime', description: 'Reset completed successfully' },
+};
+
+let currentExtensionState = EXTENSION_STATES.UNINITIALIZED;
+
 let currentSong = null;
 let currentAction = null;
 
@@ -64,9 +101,11 @@ function getSongInfoMessage(sendResponse) {
 
 function receiveSong(song) {
   log(`receiveSong ~ song ${JSON.stringify(song, null, 2)}`);
+  setExtensionState('SONG_LOADING');
   currentSong = song;
   // inject song in the page
   injectCurrentSong();
+  setExtensionState('SONG_LOADED');
 }
 
 ////////////////////////////////////////////////////////
@@ -81,11 +120,7 @@ function getCurrentTime() {
     return 0;
   }
   const currentTime = video.currentTime;
-  registerVideoTimeUpdate((time) => {
-    log(`🫣 getCurrentTime ~ time: ${time}`);
-    currentTime = time;
-  });
-  return currentTime;
+  return currentTime || 0;
 }
 
 function registerVideoTimeUpdate() {
@@ -98,26 +133,11 @@ function registerVideoTimeUpdate() {
   return () => video.removeEventListener('timeupdate', updatePlayHint);
 }
 
-// function registerVideoTimeUpdate() {
-//   const video = document.querySelector('.player-video');
-//   if (!video) {
-//     log('Video element not found');
-//     return;
-//   }
-//   video.addEventListener('timeupdate', );
-// }
-
 function updatePlayHint(event) {
   try {
-    console.log('updatePlayHint', event);
+    log('updatePlayHint', event);
     const playHintsContainer = getPlayingHintsContainer();
-    const video = document.querySelector('.player-video');
-    if (!video) {
-      log('Video element not found');
-      return;
-    }
-    const currentTime = video.currentTime;
-    log(`updatePlayHint ~ currentTime: ${currentTime}`);
+    const currentTime = getCurrentTime();
     const section = getPlayingHintsSection(currentTime);
     const currentSectionId = getCurrentPlayingHintsSectionId();
     if (section && section.timing !== currentSectionId) {
@@ -600,18 +620,23 @@ function init() {
     return Promise.resolve();
   }
   currentAction = 'init';
+  setExtensionState('INITIALIZING');
+
   if (!window || !window.location) {
     currentAction = null;
+    setExtensionState('ERROR');
     console.info('No window or location found');
     return Promise.resolve();
   }
   if (!pathNameConstraint.test(window.location.pathname)) {
     currentAction = null;
+    setExtensionState('NOT_SONG_PAGE');
     console.info('Not playing');
     return Promise.resolve();
   }
   if (document.getElementById(extensionButtonsContainerId)) {
     console.info('Buttons already present.');
+    setExtensionState('INITIALIZED');
     unsubscribeFromEvents();
     return Promise.resolve();
   }
@@ -619,6 +644,7 @@ function init() {
     setTimeout(() => {
       addButtons();
       registerVideoTimeUpdate();
+      setExtensionState('INITIALIZED');
       // askForSong(); // only works if the extension is open, so its shit.
       resolve();
     }, 1000);
@@ -660,11 +686,10 @@ function doWhenReady(callback) {
 function lazyInit() {
   log('🚀 ~ lazyInit');
   currentAction = 'lazyInit';
-  setStatusDotColor('yellow');
+  setExtensionState('LOADING');
 
   setTimeout(() => {
     doWhenReady(init);
-    setStatusDotColor('lightgreen');
   }, 1000);
 }
 
@@ -686,7 +711,8 @@ function insertStatusDot() {
   statusDiv.style.height = '10px';
   statusDiv.style.borderRadius = '50%';
   statusDiv.style.zIndex = '1';
-  statusDiv.style.backgroundColor = 'red';
+  statusDiv.style.backgroundColor = currentExtensionState.color;
+  statusDiv.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
   document.body.appendChild(statusDiv);
 }
 
@@ -699,7 +725,26 @@ function getStatusDot() {
   return document.getElementById(statusDotId);
 }
 
+function setExtensionState(newState) {
+  if (!EXTENSION_STATES[newState]) {
+    log(`❌ Invalid state: ${newState}`);
+    return;
+  }
+
+  const previousState = currentExtensionState;
+  currentExtensionState = EXTENSION_STATES[newState];
+
+  const statusDot = getStatusDot();
+  if (statusDot) {
+    statusDot.style.backgroundColor = currentExtensionState.color;
+    statusDot.title = `${currentExtensionState.name}: ${currentExtensionState.description}`;
+  }
+
+  log(`🔄 State changed: ${previousState.name} → ${currentExtensionState.name}`);
+}
+
 function setStatusDotColor(color) {
+  // Legacy function for backward compatibility
   const statusDot = getStatusDot();
   if (!statusDot) {
     return;
@@ -723,7 +768,7 @@ function setStatusDotColor(color) {
 
 function reset() {
   log('🔄 Resetting extension state...');
-  setStatusDotColor('red');
+  setExtensionState('RESETTING');
 
   // Reset current action and song
   currentAction = null;
@@ -754,7 +799,7 @@ function reset() {
   // Remove video time update listener
   const video = getPlayerVideo();
   if (video) {
-    setStatusDotColor('yellow');
+    setExtensionState('LOADING');
     video.removeEventListener('timeupdate', updatePlayHint);
   }
 
@@ -762,7 +807,7 @@ function reset() {
   alert('🎵 Flowkey Options Extension: Ready for new song!');
 
   log('✅ Extension state reset complete');
-  setStatusDotColor('green');
+  setExtensionState('RESET_COMPLETE');
 }
 
 function isSongPage() {
@@ -771,6 +816,7 @@ function isSongPage() {
 
 function handlePageChange() {
   log('📄 Page change detected');
+  setExtensionState('PAGE_CHANGE_DETECTED');
 
   if (isSongPage()) {
     log('🎵 Song page detected, resetting extension');
@@ -778,13 +824,13 @@ function handlePageChange() {
 
     // Initialize for the new song page
     setTimeout(() => {
-      setStatusDotColor('blue');
       init().then(() => {
-        setStatusDotColor('teal');
+        setExtensionState('READY');
       });
     }, 1000);
   } else {
     log('❌ Not a song page, skipping reset');
+    setExtensionState('NOT_SONG_PAGE');
   }
 }
 
@@ -813,7 +859,7 @@ function setupPageChangeListeners() {
     const url = location.href;
     if (url !== lastUrl) {
       lastUrl = url;
-      setStatusDotColor('purple');
+      setExtensionState('PAGE_CHANGE_DETECTED');
       setTimeout(handlePageChange, 100);
     }
   });
