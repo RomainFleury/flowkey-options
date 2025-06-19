@@ -48,6 +48,7 @@ const EXTENSION_STATES = {
 };
 
 let currentExtensionState = EXTENSION_STATES.UNINITIALIZED;
+let loadingTimeout = null;
 
 let currentSong = null;
 let currentAction = null;
@@ -83,6 +84,7 @@ function handleMessage(message, sender, sendResponse) {
     case 'sendSong':
       receiveSong(message.song);
       sendResponse({ type: 'songReceived' });
+      forceReset();
       break;
     case 'displayButtons':
       init();
@@ -133,17 +135,20 @@ function registerVideoTimeUpdate() {
   return () => video.removeEventListener('timeupdate', updatePlayHint);
 }
 
+let lastCurrentTime = 0;
 function updatePlayHint(event) {
   try {
-    log('updatePlayHint', event);
-    const playHintsContainer = getPlayingHintsContainer();
-    const currentTime = getCurrentTime();
-    const section = getPlayingHintsSection(currentTime);
+    const currentTime = event?.target?.currentTime ? Math.floor(event.target.currentTime) : getCurrentTime();
     const currentSectionId = getCurrentPlayingHintsSectionId();
+    if (currentTime === lastCurrentTime && currentSectionId) {
+      return;
+    }
+    lastCurrentTime = currentTime;
+    log(`updatePlayHint ~ currentTime: ${currentTime}`);
+    const playHintsContainer = getPlayingHintsContainer();
+    const section = getPlayingHintsSection(currentTime);
     if (section && section.timing !== currentSectionId) {
-      setCurrentPlayingHintsSection(section);
-      playHintsContainer.innerHTML = `Current time: ${currentTime}
-  ${formatSection(section)}`;
+      setCurrentPlayingHintsSection(section, playHintsContainer);
     }
   } catch (error) {
     log(`updatePlayHint ~ error: ${error}`);
@@ -157,15 +162,11 @@ function getPlayingHintsSection(currentTime) {
   if (currentSong.content.movements.length === 0) {
     return undefined;
   }
-  const currentTimeInSeconds = Math.floor(currentTime);
-  log(`Current time: ${currentTime} (${currentTimeInSeconds})`);
-  // if we don't find in first movement, we look in the next one
-
   const currentSection = currentSong.content.movements.reduce((foundSection, movement) => {
     return (
       foundSection ||
       movement.sections.find((section) => {
-        return currentTimeInSeconds >= section.start_time_sec && currentTimeInSeconds <= section.end_time_sec;
+        return currentTime >= section.start_time_sec && currentTime <= section.end_time_sec;
       })
     );
   }, undefined);
@@ -423,6 +424,7 @@ function setCurrentPlayingHintsSection(section) {
     return;
   }
   playHintsContainer.setAttribute('data-section-id', section.timing);
+  playHintsContainer.innerHTML = formatSection(section);
 }
 
 function createPlayingHintsContainer() {
@@ -433,34 +435,27 @@ function createPlayingHintsContainer() {
   return playHintsContainer;
 }
 
-function toggleSongInfo() {
-  const songInfoContainer = getSongInfoContainer();
-  const toggleSongButton = document.getElementById(toggleSongInfoButtonId);
-  log(`toggleSongInfo`);
-  if (songInfoContainer.style.opacity === '0') {
-    log('SHOW');
-    Object.assign(toggleSongButton.style, buttonActiveStyles);
-    songInfoContainer.style.opacity = '1';
+function toggleContainer(container, buttonId, additionalAction) {
+  const toggleButton = document.getElementById(buttonId);
+  if (!toggleButton) {
+    return;
+  }
+  if (container.style.opacity === '0') {
+    Object.assign(toggleButton.style, buttonActiveStyles);
+    container.style.opacity = '1';
+    additionalAction?.();
   } else {
-    log('HIDE');
-    Object.assign(toggleSongButton.style, buttonInactiveStyles);
-    songInfoContainer.style.opacity = '0';
+    Object.assign(toggleButton.style, buttonInactiveStyles);
+    container.style.opacity = '0';
   }
 }
 
+function toggleSongInfo() {
+  toggleContainer(getSongInfoContainer(), toggleSongInfoButtonId);
+}
+
 function togglePlayingHints() {
-  const playHintsContainer = getPlayingHintsContainer();
-  const togglePlayingHintsButton = document.getElementById(togglePlayingHintsButtonId);
-  log(`togglePlayingHints`);
-  if (playHintsContainer.style.opacity === '0') {
-    log('SHOW');
-    Object.assign(togglePlayingHintsButton.style, buttonActiveStyles);
-    playHintsContainer.style.opacity = '1';
-  } else {
-    log('HIDE');
-    Object.assign(togglePlayingHintsButton.style, buttonInactiveStyles);
-    playHintsContainer.style.opacity = '0';
-  }
+  toggleContainer(getPlayingHintsContainer(), togglePlayingHintsButtonId, updatePlayHint);
 }
 
 function injectSongContainer() {
@@ -685,6 +680,13 @@ function doWhenReady(callback) {
 
 function lazyInit() {
   log('🚀 ~ lazyInit');
+
+  // Prevent multiple simultaneous initializations
+  if (currentAction === 'lazyInit' || currentAction === 'init') {
+    log('⚠️ Already initializing, skipping lazyInit');
+    return;
+  }
+
   currentAction = 'lazyInit';
   setExtensionState('LOADING');
 
@@ -732,6 +734,19 @@ function setExtensionState(newState) {
   }
 
   const previousState = currentExtensionState;
+
+  // Prevent getting stuck in loading states
+  if (newState === 'LOADING' && (previousState.name === 'Loading' || previousState.name === 'Initializing')) {
+    log(`⚠️ Skipping LOADING state transition from ${previousState.name}`);
+    return;
+  }
+
+  // Clear any existing loading timeout
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
+  }
+
   currentExtensionState = EXTENSION_STATES[newState];
 
   const statusDot = getStatusDot();
@@ -741,6 +756,14 @@ function setExtensionState(newState) {
   }
 
   log(`🔄 State changed: ${previousState.name} → ${currentExtensionState.name}`);
+
+  // Set timeout for loading states to prevent getting stuck
+  if (newState === 'LOADING' || newState === 'INITIALIZING' || newState === 'SONG_LOADING') {
+    loadingTimeout = setTimeout(() => {
+      log(`⚠️ Loading state timeout reached for ${newState}, forcing to READY`);
+      setExtensionState('READY');
+    }, 10000); // 10 second timeout
+  }
 }
 
 function setStatusDotColor(color) {
@@ -799,7 +822,6 @@ function reset() {
   // Remove video time update listener
   const video = getPlayerVideo();
   if (video) {
-    setExtensionState('LOADING');
     video.removeEventListener('timeupdate', updatePlayHint);
   }
 
@@ -868,3 +890,25 @@ function setupPageChangeListeners() {
 
   log('📡 Page change listeners setup complete');
 }
+
+// Manual reset function to get out of stuck states
+function forceReset() {
+  log('🆘 Force reset called - clearing all timeouts and resetting state');
+
+  // Clear any loading timeout
+  if (loadingTimeout) {
+    clearTimeout(loadingTimeout);
+    loadingTimeout = null;
+  }
+
+  // Reset action
+  currentAction = null;
+
+  // Force to ready state
+  setExtensionState('READY');
+
+  log('✅ Force reset complete');
+}
+
+// Expose force reset globally for debugging
+window.flowkeyForceReset = forceReset;
