@@ -3,7 +3,8 @@
 ////////////////////////////////////////////////////////
 
 const SYNC_SERVER_URL = 'http://localhost:2727/api/generate';
-const HIDE_LOGS = true;
+const HIDE_LOGS = false;
+const LOG_LEVEL = HIDE_LOGS ? 'toast' : 'debug';
 
 // function handleMessageResponse(message, sender, sendResponse) {
 //   console.log("🚀 ~ handleMessageResponse ~ sendResponse:", sendResponse);
@@ -78,16 +79,37 @@ function sendSongToTab(song) {
 // HELPERS
 ////////////////////////////////////////////////////////
 
-function logMessage(message) {
-  console.log(`🚀 [Flowkey Options] ${message}`);
-  if (HIDE_LOGS) {
+function logMessage(message, priority = 'toast') { // info, debug
+  if (LOG_LEVEL === 'toast' && priority === 'debug') {
     return;
   }
-  const messages = document.getElementById('messages');
-  messages.textContent = message;
-  messages.classList.remove('fadeout');
+  if (LOG_LEVEL === 'toast' || !message) {
+    return;
+  }
+  console.log(`🚀 [Flowkey Options] ${message}`);
+
+  const toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    return;
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+
+  toastContainer.appendChild(toast);
+
+  // Show the toast
   setTimeout(() => {
-    messages.classList.add('fadeout');
+    toast.classList.add('show');
+  }, 100); // Small delay to allow CSS transition
+
+  // Hide and remove the toast after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => {
+      toast.remove();
+    });
   }, 3000);
 }
 
@@ -141,6 +163,14 @@ function loading(active) {
 ////////////////////////////////////////////////////////
 // ACTUAL ACTIONS
 ////////////////////////////////////////////////////////
+
+async function sendCurrentSongIfAvailable(song) {
+  const currentSong = song || currentSongFromForm();
+  if (currentSong) {
+    await fetchSyncData(currentSong.title, currentSong.author, currentSong.id);
+    sendSongToTab(currentSong);
+  }
+}
 
 async function fetchJsonAndSendToTab(songInfo) {
   const completeInfo = await fetchSyncData(songInfo.title, songInfo.author, songInfo.idFromUrl);
@@ -230,24 +260,31 @@ function createTableRow(song) {
   const author = document.createElement('td');
   author.textContent = song.author;
   row.appendChild(author);
-  const loadButton = document.createElement('td');
-  loadButton.classList.add('load-button');
-  const button = document.createElement('button');
-  button.textContent = 'Load';
-  button.addEventListener('click', () => {
+
+  // Load button
+  const loadButtonCell = document.createElement('td');
+  const loadButton = document.createElement('button');
+  loadButton.title = `Load ${song.title}`;
+  loadButton.classList.add('icon-button');
+  loadButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>`;
+  loadButton.addEventListener('click', () => {
     sendSongToTab(song);
   });
-  loadButton.appendChild(button);
-  row.appendChild(loadButton);
+  loadButtonCell.appendChild(loadButton);
+  row.appendChild(loadButtonCell);
+
+  // Download button
   const downloadButtonCell = document.createElement('td');
-  downloadButtonCell.classList.add('download-button');
   const downloadButton = document.createElement('button');
-  downloadButton.textContent = 'Download';
+  downloadButton.title = `Download ${song.title}`;
+  downloadButton.classList.add('icon-button');
+  downloadButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>`;
   downloadButton.addEventListener('click', (e) => {
     downloadSong(song);
   });
   downloadButtonCell.appendChild(downloadButton);
   row.appendChild(downloadButtonCell);
+
   return row;
 }
 
@@ -289,6 +326,7 @@ function highlightCurrentSong(id) {
   }
   const row = document.querySelector(`tr[data-id="${id || currentSong.id}"]`);
   row?.classList.add('current-song');
+  sendCurrentSongIfAvailable(currentSong);
 }
 ////////////////////////////////////////////////////////
 
