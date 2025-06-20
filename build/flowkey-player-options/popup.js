@@ -3,8 +3,8 @@
 ////////////////////////////////////////////////////////
 
 const SYNC_SERVER_URL = 'http://localhost:2727/api/generate';
-const HIDE_LOGS = false;
-const LOG_LEVEL = HIDE_LOGS ? 'toast' : 'debug';
+const HIDE_LOGS = true;
+const LOG_LEVEL = HIDE_LOGS ? 'info' : 'debug';
 
 // function handleMessageResponse(message, sender, sendResponse) {
 //   console.log("🚀 ~ handleMessageResponse ~ sendResponse:", sendResponse);
@@ -39,6 +39,10 @@ function getStoredSongs() {
     });
 }
 
+function removeFromStorage(key) {
+  localStorage.removeItem(key);
+}
+
 ////////////////////////////////////////////////////////
 // MESSAGE HANDLING
 ////////////////////////////////////////////////////////
@@ -69,9 +73,9 @@ function sendMessageToTab(message, callback) {
 }
 
 function sendSongToTab(song) {
-  logMessage(`Sending song to tab: ${song.title} - ${song.author} - ${song.id}`);
-  sendMessageToTab({ type: 'sendSong', song }, (response) => {
-    logMessage(`Song sent to tab`);
+  logMessage(`Loading "${song.title}" on the page...`, 'debug');
+  sendMessageToTab({ type: 'sendSong', song }, (_response) => {
+    logMessage(`Song sent to tab`, 'debug');
   });
 }
 
@@ -79,14 +83,20 @@ function sendSongToTab(song) {
 // HELPERS
 ////////////////////////////////////////////////////////
 
-function logMessage(message, priority = 'toast') { // info, debug
-  if (LOG_LEVEL === 'toast' && priority === 'debug') {
+function logMessage(message, priority = 'info') { // 'info' creates a toast, 'debug' is console-only
+  if (!message) {
     return;
   }
-  if (LOG_LEVEL === 'toast' || !message) {
+
+  // Control console logging based on LOG_LEVEL
+  if (LOG_LEVEL === 'debug' || (LOG_LEVEL === 'info' && priority === 'info')) {
+    console.log(`🚀 [Flowkey Options] [${priority.toUpperCase()}] ${message}`);
+  }
+
+  // Only create toasts for 'info' and 'error' level messages
+  if (priority !== 'info' && priority !== 'error') {
     return;
   }
-  console.log(`🚀 [Flowkey Options] ${message}`);
 
   const toastContainer = document.getElementById('toast-container');
   if (!toastContainer) {
@@ -95,6 +105,9 @@ function logMessage(message, priority = 'toast') { // info, debug
 
   const toast = document.createElement('div');
   toast.className = 'toast';
+  if (priority === 'error') {
+    toast.classList.add('error');
+  }
   toast.textContent = message;
 
   toastContainer.appendChild(toast);
@@ -167,7 +180,6 @@ function loading(active) {
 async function sendCurrentSongIfAvailable(song) {
   const currentSong = song || currentSongFromForm();
   if (currentSong) {
-    await fetchSyncData(currentSong.title, currentSong.author, currentSong.id);
     sendSongToTab(currentSong);
   }
 }
@@ -180,19 +192,20 @@ async function fetchJsonAndSendToTab(songInfo) {
 
 async function fetchCurrentSongNameAndAuthor() {
   loading(true);
-  logMessage('Fetching current song name and author');
+  logMessage('Reading song details from the page...', 'debug');
   return new Promise((resolve) => {
     sendMessageToTab({ type: 'getSongInfo' }, (response) => {
       if (!response) {
-        logMessage('🙏 No song info received');
+        logMessage('Could not find a song on the page.', 'info');
+        loading(false);
         return;
       }
-      logMessage(`Received song info: ${response.title} - ${response.author} - ${response.idFromUrl}`);
+      logMessage(`Received: ${response.title}`, 'debug');
       document.getElementById('current-song-name').value = response.title;
       document.getElementById('current-song-author').value = response.author;
       document.getElementById('current-song-id').value = response.idFromUrl;
-      document.getElementById('current-song-measures-count').value = response.measuresCount;
-      document.getElementById('current-song-length-in-seconds').value = response.lengthInSeconds;
+      document.getElementById('current-song-measures-count').value = response.measuresCount || 0;
+      document.getElementById('current-song-length-in-seconds').value = response.lengthInSeconds || 0;
       document.getElementById('last-sheets').innerHTML = '';
       response.lastSheets.reverse().forEach((sheetImageUrl) => {
         const img = document.createElement('img');
@@ -210,15 +223,20 @@ async function fetchCurrentSongNameAndAuthor() {
 
 async function fetchSyncData(title, author, id, measuresCount, lengthInSeconds) {
   loading(true);
-  logMessage(`Fetching sync data for: ${title} - ${author} - ${id}`);
   const cacheKey = getSongId(title, author, id);
   const cached = loadFromStorage(cacheKey);
   if (cached) {
-    logMessage(`Loaded from cache: ${title} - ${author} - ${id}`);
+    logMessage(`Loaded "${title}".`, 'info');
     loading(false);
+    logMessage(`Loaded "${title}" from cache.`, 'debug');
     return cached;
   }
-
+  if (!measuresCount || !lengthInSeconds) {
+    logMessage(`Missing measures count or length in seconds for "${title}".`, 'error');
+    loading(false);
+    return null;
+  }
+  logMessage(`Generating data for "${title}"...`, 'info');
   const response = await fetch(
     `${SYNC_SERVER_URL}?pieceTitle=${encodeURIComponent(title)}&composer=${encodeURIComponent(
       author,
@@ -228,10 +246,15 @@ async function fetchSyncData(title, author, id, measuresCount, lengthInSeconds) 
   );
 
   const RAW_JSON = await response.json();
+  if (RAW_JSON.error) {
+    logMessage(`Failed to fetch data for "${title}" (${RAW_JSON.error}).`, 'error');
+    loading(false);
+    return null;
+  }
+
   const formatted = formatSongData(cacheKey, RAW_JSON);
   saveToStorage(cacheKey, formatted);
-  logMessage(`Fetched from server: ${title} - ${author} - ${id}`);
-  console.log('[Flowkey Sync] Fetched from server');
+  logMessage(`Fetched "${title}" from server.`, 'debug');
   loading(false);
   return formatted;
 }
@@ -285,6 +308,21 @@ function createTableRow(song) {
   downloadButtonCell.appendChild(downloadButton);
   row.appendChild(downloadButtonCell);
 
+  // Remove button
+  const removeButtonCell = document.createElement('td');
+  const removeButton = document.createElement('button');
+  removeButton.title = `Remove ${song.title}`;
+  removeButton.classList.add('icon-button');
+  removeButton.classList.add('remove-button');
+  removeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>`;
+  removeButton.addEventListener('click', () => {
+    removeFromStorage(song.key);
+    logMessage(`"${song.title}" removed.`, 'info');
+    syncAllSongs();
+  });
+  removeButtonCell.appendChild(removeButton);
+  row.appendChild(removeButtonCell);
+
   return row;
 }
 
@@ -300,7 +338,7 @@ function downloadAllSongs() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  logMessage('Songs downloaded');
+  logMessage('All songs downloaded.', 'info');
 }
 
 function downloadSong(song) {
@@ -313,7 +351,7 @@ function downloadSong(song) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  logMessage('Song downloaded');
+  logMessage(`Downloaded "${song.title}".`, 'info');
 }
 
 function highlightCurrentSong(id) {
@@ -343,7 +381,11 @@ function mapButtons() {
   document.getElementById('fetch-current-song-button').addEventListener('click', async () => {
     const currentSong = currentSongFromForm();
     if (!currentSong) {
-      logMessage('No song found');
+      logMessage('No song data available to generate from.', 'info');
+      return;
+    }
+    if (currentSong.measuresCount <= 5 || currentSong.lengthInSeconds <= 5) {
+      logMessage('No measures count or length in seconds available.', 'error');
       return;
     }
 
