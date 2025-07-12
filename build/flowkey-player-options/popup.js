@@ -237,26 +237,50 @@ async function fetchSyncData(title, author, id, measuresCount, lengthInSeconds) 
     return null;
   }
   logMessage(`Generating data for "${title}"...`, 'info');
-  const response = await fetch(
-    `${SYNC_SERVER_URL}?pieceTitle=${encodeURIComponent(title)}&composer=${encodeURIComponent(
-      author,
-    )}&measuresCount=${encodeURIComponent(measuresCount)}&lengthInSeconds=${encodeURIComponent(
-      lengthInSeconds,
-    )}&instrumentVariant=${encodeURIComponent('A piano solo by Flowkey')}`,
-  );
+  
+  try {
+    const response = await fetch(
+      `${SYNC_SERVER_URL}?pieceTitle=${encodeURIComponent(title)}&composer=${encodeURIComponent(
+        author,
+      )}&measuresCount=${encodeURIComponent(measuresCount)}&lengthInSeconds=${encodeURIComponent(
+        lengthInSeconds,
+      )}&instrumentVariant=${encodeURIComponent('A piano solo by Flowkey')}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
 
-  const RAW_JSON = await response.json();
-  if (RAW_JSON.error) {
-    logMessage(`Failed to fetch data for "${title}" (${RAW_JSON.error}).`, 'error');
+    if (!response.ok) {
+      const errorText = await response.text();
+      logMessage(`Server error for "${title}" (${response.status}: ${errorText}).`, 'error');
+      loading(false);
+      return null;
+    }
+
+    const RAW_JSON = await response.json();
+    if (RAW_JSON.error) {
+      logMessage(`Failed to fetch data for "${title}" (${RAW_JSON.error}).`, 'error');
+      loading(false);
+      return null;
+    }
+
+    const formatted = formatSongData(cacheKey, RAW_JSON);
+    saveToStorage(cacheKey, formatted);
+    logMessage(`Fetched "${title}" from server.`, 'debug');
+    loading(false);
+    return formatted;
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('CORS')) {
+      logMessage(`CORS error for "${title}". Make sure the server is running and CORS is properly configured.`, 'error');
+    } else {
+      logMessage(`Network error for "${title}": ${error.message}`, 'error');
+    }
     loading(false);
     return null;
   }
-
-  const formatted = formatSongData(cacheKey, RAW_JSON);
-  saveToStorage(cacheKey, formatted);
-  logMessage(`Fetched "${title}" from server.`, 'debug');
-  loading(false);
-  return formatted;
 }
 
 function autoLoadCurrentSong() {
